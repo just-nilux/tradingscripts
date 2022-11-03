@@ -7,7 +7,10 @@ import os
 
 def formatDataframe(data):
 
-    df = pd.DataFrame(data, columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+    df = pd.DataFrame(
+            data, 
+            columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore']
+    )
     
     date = pd.to_datetime(df['Date'],unit='ms').dt.strftime("%Y-%m-%d %H:%M:%S")
     print(type(date))
@@ -29,9 +32,17 @@ def klineHunter(symbol, interval, start=None, stop=None):
 
     """Method to fetch historical data from Binance API"""
 
-    client = Client("wca05r3DNe36Q3yusf3uJlpyW7qfZGYP623DtrgeHynzfWct6Kv5jINCxZF684rd", "28DE1cQbb7427tlVP4ZBqhkR0etHr9ErSxVd4htIngHWN8y5ZT6WjYz87aint39u")
+    client = Client(
+            "wca05r3DNe36Q3yusf3uJlpyW7qfZGYP623DtrgeHynzfWct6Kv5jINCxZF684rd", 
+            "28DE1cQbb7427tlVP4ZBqhkR0etHr9ErSxVd4htIngHWN8y5ZT6WjYz87aint39u"
+    )
 
-    data = client.get_historical_klines(str(symbol).upper(), interval, start, stop)
+    data = client.get_historical_klines(
+            str(symbol).upper(), 
+            interval, 
+            start, 
+            stop
+    )
 
     formatted_df = formatDataframe(data)
 
