@@ -15,9 +15,9 @@ def formatData(data):
     df['Close_time'] = df['Close_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
     df.set_index('Date', inplace=True)
+    df.sort_index(inplace=True)
     df = df.loc[~df.index.duplicated()]
-    df = df.sort_index()
-
+    
     return df
 
 
