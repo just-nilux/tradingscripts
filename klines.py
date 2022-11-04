@@ -8,15 +8,11 @@ import os
 def formatDataframe(data):
 
     df = pd.DataFrame(data, columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time']].astype(float)
     
-    date = pd.to_datetime(df['Date'],unit='ms').dt.strftime("%Y-%m-%d %H:%M:%S")
-    print(type(date))
+    df['Date'] = pd.to_datetime(df['Date'],unit='ms').dt.strftime("%Y-%m-%d %H:%M:%S")
     df['Close_time'] = pd.to_datetime(df['Close_time'],unit='ms') + timedelta(seconds=1)
-    Close_time = df['Close_time'].dt.strftime('%Y-%m-%d %H:%M:%S').astype(str).str.upper()
-    
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
-    df = df.join(date)
-    df = df.join(Close_time)
+    df['Close_time'] = df['Close_time'].dt.strftime('%Y-%m-%d %H:%M:%S').astype(str).str.upper()
     
     df.set_index('Date', inplace=True)
     df = df.loc[~df.index.duplicated()]
