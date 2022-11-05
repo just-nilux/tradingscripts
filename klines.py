@@ -53,7 +53,7 @@ def klineHunter(symbol, interval, start=None, stop=None):
 
     df = formatData(data)
 
-    #path = '//home/traderblakeq/Python/klines'
+    path = '//home/traderblakeq/Python/klines'
     os.chdir(path)
 
     df.to_pickle(f'{symbol.upper()}{interval.upper()}.pkl')
