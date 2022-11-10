@@ -45,9 +45,6 @@ def fetch_y_values_peaks(df, x_peak_combinations_list):
 
 def peak_regression(x_peak_combinations_list, y_peaks_combination_arr):
 
-    # zip de to x / y peaks array sammen inden regression:
-    #x_y_peak_combi_arr = [item for item in zip(x_peak_combinations_list, y_peaks_combination_arr)]
-
     peak_regression_list = list()
 
     for i in range(len(x_peak_combinations_list)):
