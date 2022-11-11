@@ -3,6 +3,7 @@ from scipy.signal import find_peaks
 from scipy.stats import linregress
 from itertools import combinations
 import matplotlib.pyplot as plt
+import mplfinance as fplt
 import pandas as pd
 import numpy as np
 import math
@@ -11,12 +12,34 @@ import os
 
 def detect_peaks(df):
         
-    x_peaks_cwt = find_peaks_cwt(df.Close, widths=np.arange(5, 15))
-
-    x_peaks = find_peaks(df.Close, prominence=0.1, width=1)[0]
-
+    x_peaks = find_peaks_cwt(df.Close, widths=np.arange(2, 10))
+    
+    #x_peaks = find_peaks(df.Close, prominence=0.1, width=1)[0]
+    print(x_peaks)
     return x_peaks
 
+def tune_peaks(df, x_peaks):
+
+    # get the highest value previous 10 candles / 10 future candles
+
+    x_peaks_np = list()
+
+    df['enumerate'] = df.index
+
+    for peak in x_peaks:
+
+        previous = peak -5
+        forward = peak + 5
+
+        highest_price = df.loc[previous:forward, 'Close'].idxmax()
+
+        x_peaks_np.append(highest_price)
+
+   
+    return x_peaks_np
+
+
+        
 
 def all_combi_af_peaks(x_peaks):
 
@@ -100,6 +123,9 @@ def trendline_angle_degree(trendl_candidates_df):
 
     trendl_candidates_df['angle_degree'] = trendl_candidates_df.slope.apply(lambda x: math.degrees(math.atan(x)))
 
+    trendl_candidates_df.drop(trendl_candidates_df[trendl_candidates_df.angle_degree > 0].index, inplace=True)
+    trendl_candidates_df.drop(trendl_candidates_df[trendl_candidates_df.r_value == -1.0].index, inplace=True)
+
 
     return trendl_candidates_df
 
@@ -121,7 +147,7 @@ def plot_all_trendl(df, trendl_candidates, x_peaks):
         x_peaks_date.append(df.iloc[peak].Date)
     
     plt.scatter(x_peaks, y_peaks, c='green')
-
+    
 
     # plot alle mulige trendlines:
 
@@ -132,9 +158,13 @@ def plot_all_trendl(df, trendl_candidates, x_peaks):
 
         #plt.plot(df.index, y_hat, color='blue')
     
-
     # Plot best line:
+    #trendl_candidates['r_value'].idxmax()
+
+    #print(trendl_candidates)
     best_trendl = trendl_candidates.iloc[0]
+
+
     y_hat_best = best_trendl.slope*df.index + best_trendl.intercept
     plt.plot(df.index, y_hat_best, color='blue')
 
@@ -147,8 +177,21 @@ def plot_all_trendl(df, trendl_candidates, x_peaks):
     plt.title('Trend Hunter - ETHUSDT - 1D')
     plt.legend()
     plt.grid()
-    plt.show()
+    #plt.show()
 
+    #-----------------------------
+    
+    df['scatter'] = np.nan
+    
+    for i, a in enumerate(x_peaks):
+        df.loc[a, 'scatter'] = y_peaks[i]
+
+    df.set_index('Date', inplace=True)
+    trendl_plot = list(zip(df.index, y_hat_best))
+    
+    ap = fplt.make_addplot(df['scatter'],type='scatter', markersize=70, color='blue')
+    fplt.plot(df, type='candle', style='binance', title='Trend Hunter - ETHUSDT - 1D', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)')
+    fplt.show()
 
 
 def main():
@@ -156,13 +199,15 @@ def main():
     #path = '//home/traderblakeq/Python/klines/ETHUSDT1D.pkl'
     #os.chdir(path)
 
-    df = pd.read_pickle('ETHUSDT1D.pkl').loc['2021-12-01' :'2022-03-16']
-
-    print(df)
+    df = pd.read_pickle('ETHUSDT1D.pkl').loc['2021-12-01' : '2022-01-25']
+    
+    # '2019-06-24' :'2019-12-23'
 
     df.reset_index(inplace=True)
 
     x_peaks = detect_peaks(df)
+
+    x_peaks = tune_peaks(df, x_peaks)
 
     x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
     
