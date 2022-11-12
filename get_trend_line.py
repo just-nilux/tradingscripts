@@ -68,13 +68,17 @@ def detect_peaks(df):
     for i, x in enumerate(range(len(w1))):
         
         for p, x1 in enumerate(range(len(w2))):
+            
             x_peaks = find_peaks_cwt(df.Close, widths=np.arange(w1[i], w2[p]))
-            print(len(x_peaks))
-            if len(x_peaks) > 5 and len(x_peaks) < 9:
+            
+            #print(len(x_peaks))
+            
+            if len(x_peaks) > 3 and len(x_peaks) < 5:
+                break
+            else: 
                 continue
             
-            else: 
-                break
+        
 
 
     
