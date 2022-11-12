@@ -9,6 +9,7 @@ import mplfinance as fplt
 import pandas as pd
 import numpy as np
 import math
+import sys
 import os
 
 from matplotlib.ticker import Formatter
@@ -60,61 +61,49 @@ class JalaliDateTimeFormatter(Formatter):
 
 
 
-def detect_peaks(df):
+def detect_peaks(df, min_peaks=0, max_peaks=2**32):
     
     w1 = [2,3,4,5,6,7,8,9,10]
     w2 = [15,16,17,18,19,20]
     
+    done = False
     for i, x in enumerate(range(len(w1))):
-        
         for p, x1 in enumerate(range(len(w2))):
-            
             x_peaks = find_peaks_cwt(df.Close, widths=np.arange(w1[i], w2[p]))
             
-            #print(len(x_peaks))
-            
-            if len(x_peaks) > 3 and len(x_peaks) < 5:
+            if len(x_peaks) > min_peaks and len(x_peaks) < max_peaks:
+                done = True
                 break
-            else: 
-                continue
-            
-        
+        if done:
+            break
 
-
-    
     #x_peaks = find_peaks_cwt(df.Close, widths=np.arange(10, 20)) # 2 / 10
-    
     #x_peaks = find_peaks(df.Close, prominence=0.1, width=1)[0]
     
     print(x_peaks)
-    
     
     return x_peaks
 
 
 
 def tune_peaks(df, x_peaks):
-
-    # get the highest value previous 10 candles / 10 future candles from peak
+    """
+    get the highest value previous 10 candles / 10 future candles from peak
+    """
 
     x_peaks_np = list()
-
     df['enumerate'] = df.index
 
     for peak in x_peaks:
-
         previous = peak -10
         forward = peak + 10
-
         highest_price = df.loc[previous:forward, 'Close'].idxmax()
 
         x_peaks_np.append(highest_price)
-
    
     return x_peaks_np
 
 
-        
 
 def all_combi_af_peaks(x_peaks):
 
@@ -133,7 +122,6 @@ def all_combi_af_peaks(x_peaks):
     for i, ele in enumerate(x_peaks_combinations_list):
         if ele[0] == ele[1] == ele[2]:
             x_peaks_combinations_list.pop(i)
-            
 
     return x_peaks_combinations_list
 
@@ -296,50 +284,71 @@ def plot_all_trendl(df, trendl_candidates, x_peaks):
 
 
 
-def main():
+def main(
+        df_path, 
+        *, 
+        min_peaks   = 0, 
+        max_peaks   = 2**32, 
+        start_date  = None,
+        end_date    = None,
+):
 
-    #path = '//home/traderblakeq/Python/klines/ETHUSDT1D.pkl'
-    #os.chdir(path)
-
-    df = pd.read_pickle('ETHUSDT15M.pkl').loc['2022-10-29' : '2022-11-02'] #4
+    df = pd.read_pickle(df_path)
+    
+    if start_date:
+        df = df.loc[start_date : ] #4
      
+    if end_date:
+        df = df.loc[ : end_date] #4
     # '2019-06-24' :'2019-12-23'
+    print(df.head(), file=sys.stderr) 
+    print(df.tail())
 
     df.reset_index(inplace=True)
 
     x_peaks = detect_peaks(df)
-
     x_peaks = tune_peaks(df, x_peaks)
-
     x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
-    
     y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
     
-    trendl_candidates = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)
+    trendl_candidates = peak_regression(
+            x_peaks_combinations_list, 
+            y_peaks_combination_list
+    )
 
     trendl_candidates = fetch_trendl_start_end_price(df, trendl_candidates)
-
     trendl_candidates = trendline_angle_degree(trendl_candidates)
-
+    
+    print(plotting)
     plot_all_trendl(df, trendl_candidates, x_peaks)
-
 
     return df, trendl_candidates
 
 
-#if __name__=='__main__':
-#    import sys
+if __name__=='__main__':
+    df_path = sys.argv[1]
+    kwargs = {}
+   
+    # Parse command line args
+    left = sys.argv[2:]
+    if '-d' in left:
+        i = left.index('-d') + 1
+        kwargs["start_date"] = left[i]
 
-#    if len(sys.argv) == 2:
-#        df = sys.argv[:1]
-#        main(df)
+    if '-D' in left:
+        i = left.index('-D') + 1
+        kwargs["start_date"] = left[i]
 
+    if '-m' in left:
+        i = left.index('-m') + 1
+        kwargs['min_peaks'] = int(left[i])
 
-
-
-
-
+    if '-M' in left:
+        i = left.index('-M') + 1
+        kwargs['max_peaks'] = int(left[i]) 
     
+    for k,v in kwargs.items():
+        print(f"{k:20}{str(v)}", file=sys.stderr)
 
+    main(df_path, **kwargs)
 
-    
