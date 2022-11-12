@@ -24,9 +24,10 @@ def formatData(data):
     df = df.loc[~df.index.duplicated()]
     df = df.sort_index()
 
-    df['Date'] = pd.to_datetime(df['Date'],unit='ms').dt.strftime("%Y-%m-%d %H:%M:%S")
-    df['Close_time'] = pd.to_datetime(df['Close_time'],unit='ms') + timedelta(seconds=1)
+    df['Date'] = pd.to_datetime(df['Date'],unit='ms').apply(lambda x: x.to_datetime64())
+    df['Close_time'] = pd.to_datetime(df['Close_time'],unit='ms') + timedelta(seconds=0.001)
     df['Close_time'] = df['Close_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    df['Close_time'] = pd.to_datetime(df['Close_time']).apply(lambda x: x.to_datetime64())
 
     df.set_index('Date', inplace=True)
     df.sort_index(inplace=True)
@@ -35,7 +36,7 @@ def formatData(data):
     return df
 
 
-def klineHunter(symbol, interval, start=None, stop=None):
+def main(symbol, interval, start=None, stop=None, *args, **kwargs):
 
     """Method to fetch historical data from Binance API  - ex.: df = klineHunter('ethusdt', '1d', '2022-01-01')"""
 
@@ -62,4 +63,18 @@ def klineHunter(symbol, interval, start=None, stop=None):
     
     return df
 
+if __name__=='__main__':
+    import sys 
+    
+    if len(sys.argv) == 3:
+        symbol, interval = sys.argv[1:3]
+        main(symbol, interval)
+        print(main.__doc__)
 
+    elif len(sys.argv) == 4:
+        symbol, interval, start = sys.argv[1:4]
+        main(symbol, interval, start)
+
+    else:
+        symbol, interval, start, stop = sys.argv[1:]
+        main(symbol, interval, start, stop)
