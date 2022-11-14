@@ -4,7 +4,7 @@ from backtesting.test import SMA
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from get_trendline_backtest import *
+from get_trendline_backtest_rodet import *
 from datetime import timedelta
 
 def Supertrend(df, atr_period, multiplier):
@@ -109,11 +109,11 @@ class Trendline_test(Strategy):
 
 
     
-df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df = pd.read_pickle('ETHUSDT15M.pkl').loc['2022-08':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
 
 # Supertrend
-atr_period = 10
-atr_multiplier = 5
+atr_period = 1
+atr_multiplier = 7
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
