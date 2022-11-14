@@ -1,109 +1,104 @@
+from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks_cwt
 from scipy.signal import find_peaks
 from scipy.stats import linregress
+from scipy import signal
 from itertools import combinations
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import jdatetime as jde
 import mplfinance as fplt
 import pandas as pd
 import numpy as np
 import math
-import sys
 import os
 
-from matplotlib.ticker import Formatter
-class JalaliDateTimeFormatter(Formatter):
-    """
-    Formatter for JalaliDate in mplfinance.
-    Handles both `show_nontrading=False` and `show_nontrading=True`.
-    When show_nonntrading=False, then the x-axis is indexed by an
-    integer representing the row number in the dataframe, thus:
-    Formatter for axis that is indexed by integer, where the integers
-    represent the index location of the datetime object that should be
-    formatted at that lcoation.  This formatter is used typically when
-    plotting datetime on an axis but the user does NOT want to see gaps
-    where days (or times) are missing.  To use: plot the data against
-    a range of integers equal in length to the array of datetimes that
-    you would otherwise plot on that axis.  Construct this formatter
-    by providing the arrange of datetimes (as matplotlib floats). When
-    the formatter receives an integer in the range, it will look up the
-    datetime and format it.
 
-    """
-    def __init__(self, dates=None, fmt='%b %d, %H:%M', show_nontrading=False):
-        self.dates = dates
-        self.len   = len(dates) if dates is not None else 0
-        self.fmt   = fmt
-        self.snt   = show_nontrading
+def remove_to_close_peaks(x_peaks):
 
-    def __call__(self, x, pos=0):
-        '''
-        Return label for time x at position pos
-        '''
-        if self.snt:
-            jdate = jd.date.fromgregorian(date=mdates.num2date(x))
-            formatted_date = jdate.strftime(self.fmt)
-            return formatted_date
+    temp = list()
 
-        ix = int(round(x,0))
+    for i, peak in enumerate(x_peaks):
 
-        if ix >= self.len or ix < 0:
-            date = None
-            formatted_date = ''
-        else:
-            date = self.dates[ix]
-            jdate = jd.date.fromgregorian(date=mdates.num2date(date))
-            formatted_date = jdate.strftime(self.fmt)
-        return formatted_date
-
-
-
-
-
-def detect_peaks(df, min_peaks=0, max_peaks=2**32):
+        if i != 0 and peak- temp[-1] < 6:         
+            temp.pop(-1)
+        temp.append(peak)
     
-    w1 = [2,3,4,5,6,7,8,9,10]
-    w2 = [15,16,17,18,19,20]
+    return temp 
+
+
+def detect_peaks_guassian(df):
+
+    if df.empty: return
+
+    df.reset_index(inplace=True)
+
+    peak_list = list()
+
+    dataFiltered = gaussian_filter1d(df.Close, sigma=2)
+    x_peaks = signal.argrelmax(dataFiltered)[0]
+    x_peaks = remove_to_close_peaks(x_peaks)
     
-    done = False
-    for i, x in enumerate(range(len(w1))):
-        for p, x1 in enumerate(range(len(w2))):
-            x_peaks = find_peaks_cwt(df.Close, widths=np.arange(w1[i], w2[p]))
+    
+    #if len(x_peaks) > 3 and len(x_peaks) < 10:
+    peak_list.append(x_peaks)
+
+    if len(peak_list) > 0:
+        return min(peak_list,key=len)
+
+
+def detect_peaks(df):
+    
+    w1 = [2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    w2 = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    
+
+    peak_list = list()
+
+    for x in w1:
+        for x1 in w2:
+
+            try:
+                x_peaks = find_peaks_cwt(df.Close, widths=np.arange(x, x1))
+            except:
+                continue
             
-            if len(x_peaks) > min_peaks and len(x_peaks) < max_peaks:
-                done = True
-                break
-        if done:
-            break
+            x_peaks = remove_to_close_peaks(x_peaks)
 
-    #x_peaks = find_peaks_cwt(df.Close, widths=np.arange(10, 20)) # 2 / 10
-    #x_peaks = find_peaks(df.Close, prominence=0.1, width=1)[0]
+
+            if len(x_peaks) > 5 and len(x_peaks) < 10:
+                peak_list.append(x_peaks)
+
     
-    print(x_peaks)
+    print(f'tops: {min(peak_list,key=len)}')
+
     
-    return x_peaks
+    return min(peak_list,key=len)
+    
 
 
 
 def tune_peaks(df, x_peaks):
-    """
-    get the highest value previous 10 candles / 10 future candles from peak
-    """
+
+    # get the highest value previous 10 candles / 10 future candles from peak
 
     x_peaks_np = list()
+
     df['enumerate'] = df.index
 
     for peak in x_peaks:
+
         previous = peak -10
         forward = peak + 10
+
         highest_price = df.loc[previous:forward, 'Close'].idxmax()
 
         x_peaks_np.append(highest_price)
+
    
     return x_peaks_np
 
 
+        
 
 def all_combi_af_peaks(x_peaks):
 
@@ -116,12 +111,14 @@ def all_combi_af_peaks(x_peaks):
     x_peaks_combinations_list.sort(key=lambda tup: tup[1])
     x_peaks_combinations_list = list(dict.fromkeys(x_peaks_combinations_list))
     
-    print(f'Antal trendl kombi: {len(x_peaks_combinations_list)}')
-
-
     for i, ele in enumerate(x_peaks_combinations_list):
         if ele[0] == ele[1] == ele[2]:
             x_peaks_combinations_list.pop(i)
+    
+    assert all(len(tup) == 3 for tup in x_peaks_combinations_list)
+
+    print(f'Antal trendl kombi: {len(x_peaks_combinations_list)}')
+    
 
     return x_peaks_combinations_list
 
@@ -270,85 +267,62 @@ def plot_all_trendl(df, trendl_candidates, x_peaks):
     df.set_index('Date', inplace=True)
     trendl_plot = list(zip(df.index, y_hat_best))
 
-    
-    dates = [mdates.date2num(d) for d in df.index]
-    formatter = JalaliDateTimeFormatter(dates=dates,fmt='%Y-%m-%d')
 
     ap = fplt.make_addplot(df['scatter'],type='scatter', markersize=70, color='blue')
     fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True)
 
-    #axlist[0].xaxis.set_major_formatter(formatter)
     
     fplt.show()
 
 
 
 
-def main(
-        df_path, 
-        *, 
-        min_peaks   = 0, 
-        max_peaks   = 2**32, 
-        start_date  = None,
-        end_date    = None,
-):
+def main():
 
-    df = pd.read_pickle(df_path)
-    
-    if start_date:
-        df = df.loc[start_date : ] #4
+    #path = '//home/traderblakeq/Python/klines/ETHUSDT1D.pkl'
+    #os.chdir(path)
+
+    df = pd.read_pickle('ETHUSDT15M.pkl').loc['2019-04-17':'2019-04-18']  #.loc['2022-11-09' : '2022-11-10 01:00:00']
      
-    if end_date:
-        df = df.loc[ : end_date] #4
     # '2019-06-24' :'2019-12-23'
-    print(df.head(), file=sys.stderr) 
-    print(df.tail())
 
     df.reset_index(inplace=True)
 
-    x_peaks = detect_peaks(df)
+    x_peaks = detect_peaks_guassian(df)
+
+    #x_peaks = detect_peaks(df)
+
     x_peaks = tune_peaks(df, x_peaks)
+
     x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
+    
     y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
     
-    trendl_candidates = peak_regression(
-            x_peaks_combinations_list, 
-            y_peaks_combination_list
-    )
+    trendl_candidates = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)
 
     trendl_candidates = fetch_trendl_start_end_price(df, trendl_candidates)
+
     trendl_candidates = trendline_angle_degree(trendl_candidates)
-    
-    print(plotting)
+
     plot_all_trendl(df, trendl_candidates, x_peaks)
+
 
     return df, trendl_candidates
 
 
-if __name__=='__main__':
-    df_path = sys.argv[1]
-    kwargs = {}
-   
-    # Parse command line args
-    left = sys.argv[2:]
-    if '-d' in left:
-        i = left.index('-d') + 1
-        kwargs["start_date"] = left[i]
+#if __name__=='__main__':
+#    import sys
 
-    if '-D' in left:
-        i = left.index('-D') + 1
-        kwargs["start_date"] = left[i]
+#    if len(sys.argv) == 2:
+#        df = sys.argv[:1]
+#        main(df)
 
-    if '-m' in left:
-        i = left.index('-m') + 1
-        kwargs['min_peaks'] = int(left[i])
 
-    if '-M' in left:
-        i = left.index('-M') + 1
-        kwargs['max_peaks'] = int(left[i]) 
+
+
+
+
     
-    for k,v in kwargs.items():
-        print(f"{k:20}{str(v)}", file=sys.stderr)
 
-    main(df_path, **kwargs)
 
+    
