@@ -1,20 +1,18 @@
-from scipy.ndimage import gaussian_filter1d
-from scipy.signal import find_peaks_cwt
-from scipy.signal import find_peaks
-from scipy.stats import linregress
-from scipy import signal
-
-from itertools import combinations
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import mplfinance as fplt
-import pandas as pd
-import numpy as np
 import math
 import os
-
-from itertools import count
 import time
+from itertools import combinations, count
+
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import mplfinance as fplt
+import numpy as np
+import pandas as pd
+from scipy import signal
+from scipy.ndimage import gaussian_filter1d
+from scipy.signal import find_peaks, find_peaks_cwt
+from scipy.stats import linregress
+
 
 def remove_to_close_peaks(x_peaks):
 
@@ -35,13 +33,9 @@ def detect_peaks_guassian(df):
 
     dataFiltered = gaussian_filter1d(df.Close, sigma=0.5)
     x_peaks = signal.argrelmax(dataFiltered)[0]
-
-    x = len(x_peaks)
     
     tuned_peaks = tune_peaks(df, x_peaks)
     cleaned_peaks = remove_to_close_peaks(tuned_peaks)
-
-    x1 = len(cleaned_peaks)
     
     if len(cleaned_peaks) > 3:
         return cleaned_peaks
