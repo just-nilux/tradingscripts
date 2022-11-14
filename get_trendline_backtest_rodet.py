@@ -335,7 +335,7 @@ def plot_all_trendl(df, final_trendline, x_peaks):
     os.chdir(path)
 
     ap = fplt.make_addplot(df['scatter'],type='scatter', markersize=70, color='blue')
-    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig='test.png')#f'{str(df.index[0])}.png')
+    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig=f'{str(df.index[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True)
 
     
