@@ -321,9 +321,7 @@ def plot_all_trendl(df, final_trendline, x_peaks):
     #plt.show()
 
     #-----------------------------
-    
-    df['scatter'] = np.nan
-    
+        
     for i, a in enumerate(x_peaks):
         df.loc[a, 'scatter'] = y_peaks[i]
 
