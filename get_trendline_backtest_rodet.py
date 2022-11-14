@@ -169,22 +169,28 @@ def fetch_y_values_peaks(df, x_peak_combinations):
 
 
 
-def peak_regression(x_peak_combinations_list, y_peaks_combination_arr):
-    if x_peak_combinations_list is None: 
+def peak_regression(x_peak_combinations, y_peak_combinations):
+    """
+    :param x_peak_combinations
+        List of peak index combinations (tuples) of len 3
+    :param x_peak_combinations
+        List of peak value combinations (tuples) of len 3
+    """
+    if x_peak_combinations is None: 
         return
 
     trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 
             'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 
             'std_err'])
 
-    for i in range(len(x_peak_combinations_list)):
+    for i in range(len(x_peak_combinations)):
         slope, intercept, r_value, p_value, std_err  = linregress(
-                x_peak_combinations_list[i], y_peaks_combination_arr[i])
+                x_peak_combinations[i], y_peak_combinations[i])
         
         trendl_candidates_df.loc[i, 'df_start_index'] = \
-                x_peak_combinations_list[i][0]
+                x_peak_combinations[i][0]
         trendl_candidates_df.loc[i, 'df_end_index'] = \
-                x_peak_combinations_list[i][2]
+                x_peak_combinations[i][2]
         trendl_candidates_df.loc[i, 'slope'] = slope
         trendl_candidates_df.loc[i, 'intercept'] = intercept
         trendl_candidates_df.loc[i, 'r_value'] = r_value
@@ -320,7 +326,6 @@ def plot_all_trendl(df, final_trendline, x_peaks):
     plt.plot(df.Close, '-')
 
     plt.title('Trend Hunter - ETHUSDT - 1D')
-    plt.legend()
     plt.grid()
     #plt.show()
 
