@@ -273,7 +273,7 @@ def check_trendl_parameters(trendl_candidates_df):
         return None
 
     else: 
-        return trendl_candidates_df
+        return trendl_candidates_df.iloc[0]
 
 def extract_data_for_plotting(df, final_trendline, x_peaks):
     if final_trendline is None: return
@@ -293,10 +293,9 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
 
     # Calcualte x, y trendline slope:
 
-    for row in final_trendline.iterrows():
-        slope = row[1].slope
-        intercept = row[1].intercept
-        y_hat = slope*df.index + intercept
+    slope = final_trendline.slope
+    intercept = final_trendline.intercept
+    y_hat = slope*df.index + intercept
 
 
     # Fill scatter row for plotting:
@@ -316,7 +315,6 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
     #trendl_x_y = json.dumps(trendl_start_end)
-
 
     path = '//home/traderblakeq/Python/tradingscripts/trendline_results'
     os.chdir(path)
