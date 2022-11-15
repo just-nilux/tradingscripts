@@ -74,7 +74,7 @@ class Trendline_test(Strategy):
     
         if crossover(self.data.Lowerband, self.data.Close): 
 
-            self.idxmax = self.data.Close.s.tail(30).idxmax() 
+            self.idxmax = self.data.Close.s.tail(60).idxmax() 
             self.crossover = True
 
         if self.crossover:  
@@ -104,6 +104,7 @@ class Trendline_test(Strategy):
             #self.plotted = test_feed(df)
 
                 if self.plotted == True:
+                    print('Trendline have been found')
                     self.crossover = False
 
             # 1 - Fetch idxmax for starting point of peak search 
