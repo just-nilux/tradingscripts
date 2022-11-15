@@ -334,7 +334,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     #fplt.show()
 
 
-    return trendl_start_end
+    return True
 
 
 
