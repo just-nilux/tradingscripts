@@ -1,4 +1,5 @@
 import math
+import json
 import os
 import time
 from itertools import combinations, count
@@ -6,6 +7,7 @@ from itertools import combinations, count
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplfinance as fplt
+
 import numpy as np
 import pandas as pd
 from scipy import signal
@@ -322,8 +324,21 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     # Skal have dumped trendl_x_y til en json fil, den skal ikke overskrives i hver iteration, men bare added nye værdier. ( Det er til at fortælle Tradingview API cordinater)
     # Og skal det egentligt ikke ud i sin egen metode ?, eller er det for fingerknepperi ?.
 
+    x =  '{ "name":"John", "age":30, "city":"New York"}'
+
+
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
-    #trendl_x_y = json.dumps(trendl_start_end)
+    
+    trendl_json = {
+        
+        trendl_start_end[0][0].isoformat() : trendl_start_end[0][1],
+        trendl_start_end[1][0].isoformat() : trendl_start_end[1][1]
+        
+        }
+
+    with open('data.json', 'a') as outfile:
+        json.dump(trendl_json, outfile)
+
     #------------------------
 
 
