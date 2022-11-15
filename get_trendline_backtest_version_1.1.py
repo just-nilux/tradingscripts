@@ -283,10 +283,6 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
         y_peaks_date.append(df.iloc[peak].Date)
         y_peaks.append(df.iloc[peak].Close)
 
-    tw = list(zip(y_peaks_date, y_peaks))
-    res = [tw[0], tw[-1]]
-
-
     # Calcualte x, y trendline slope:
 
     for row in final_trendline.iterrows():
