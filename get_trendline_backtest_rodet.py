@@ -328,11 +328,12 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
 
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
-    
+    #print(trendl_plot[0])
+    #print(trendl_plot[-1])
     trendl_json = {
         
         trendl_start_end[0][0].isoformat() : trendl_start_end[0][1],
-        trendl_start_end[1][0].isoformat() : trendl_start_end[1][1]
+        trendl_start_end[-1][0].isoformat() : trendl_start_end[-1][1]
         
         }
 
