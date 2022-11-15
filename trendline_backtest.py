@@ -19,6 +19,7 @@ def Supertrend(df, atr_period, multiplier):
                    close.shift() - low]
     true_range = pd.concat(price_diffs, axis=1)
     true_range = true_range.abs().max(axis=1)
+
     # default ATR calculation in supertrend indicator
     atr = true_range.ewm(alpha=1/atr_period,min_periods=atr_period).mean() 
     # df['atr'] = df['tr'].rolling(atr_period).mean()
