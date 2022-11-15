@@ -118,8 +118,8 @@ class Trendline_test(Strategy):
 df = pd.read_pickle('ETHUSDT15M.pkl').loc['2022-08':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
 
 # Supertrend
-atr_period = 1
-atr_multiplier = 7
+atr_period = 30
+atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
