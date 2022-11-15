@@ -316,8 +316,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
     #trendl_x_y = json.dumps(trendl_start_end)
 
-    path = '//home/traderblakeq/Python/tradingscripts/trendline_results'
-    os.chdir(path)
+    path = './trendline_results'
 
     ap = fplt.make_addplot(df_scatter['scatter'],type='scatter', markersize=70, color='blue')
     fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig=f'{str(df.index[0])}.png')
@@ -328,7 +327,6 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     plt.plot(df.index, y_hat, color='blue')
     plt.plot(df.Close, '-')
     plt.title('Trend Hunter - ETHUSDT - 1D')
-    plt.legend()
     plt.grid()
 
     #fplt.show()
