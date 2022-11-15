@@ -1,4 +1,4 @@
-from backtesting.lib import crossover, resample_apply, cross
+from backtesting.lib import crossover
 from backtesting import Backtest, Strategy
 from backtesting.test import SMA
 from pathlib import Path
@@ -19,7 +19,6 @@ def Supertrend(df, atr_period, multiplier):
                    close.shift() - low]
     true_range = pd.concat(price_diffs, axis=1)
     true_range = true_range.abs().max(axis=1)
-
     # default ATR calculation in supertrend indicator
     atr = true_range.ewm(alpha=1/atr_period,min_periods=atr_period).mean() 
     # df['atr'] = df['tr'].rolling(atr_period).mean()
@@ -73,8 +72,9 @@ class Trendline_test(Strategy):
     def next(self):
         
     
-        if crossover(self.data.Lowerband, self.data.Close): # When cross High probability for Swing High
-            self.idxmax = self.data.Close.s.tail(30).idxmax() #SwingHigh index
+        if crossover(self.data.Lowerband, self.data.Close): 
+
+            self.idxmax = self.data.Close.s.tail(30).idxmax() 
             self.crossover = True
 
         if self.crossover:  
@@ -83,23 +83,27 @@ class Trendline_test(Strategy):
 
             df = self.data.df.loc[self.idxmax:current_id]
             df = df[['Open', 'Close']]
-            df_plot_id = current_id + timedelta(hours=15)
-            df_plot = self.data.df.loc[self.idxmax:df_plot_id]
 
 
-            peak_list = detect_peaks_guassian(df)
-            x_peaks_combinations_list = all_combi_af_peaks(peak_list)
+            x_peaks = detect_peaks_guassian(df)
+            x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
             trendl_candidates_df = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)            
             trendl_candidates_df = fetch_trendl_start_end_price(df, trendl_candidates_df)
             trendl_candidates_df = trendline_angle_degree(trendl_candidates_df)
             candidates_after_check = check_trendl_parameters(trendl_candidates_df)
-            self.plotted = plot_all_trendl(df_plot, candidates_after_check, peak_list)
+            tup_data_for_plotting  = extract_data_for_plotting(df, candidates_after_check, x_peaks)
+            
+            if tup_data_for_plotting:
+                df_plot_id = current_id + timedelta(hours=15)
+                df_plot = self.data.df.loc[self.idxmax:df_plot_id]
+
+                self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
             
             #self.plotted = test_feed(df)
 
-            if self.plotted == True:
-                self.crossover = False
+                if self.plotted == True:
+                    self.crossover = False
 
             # 1 - Fetch idxmax for starting point of peak search 
             # 2 - Feed df with same start index to "detect_peaks_gaussion, add one candle more at a time in each iteration.  
