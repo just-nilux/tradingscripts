@@ -84,7 +84,6 @@ class Trendline_test(Strategy):
             df = self.data.df.loc[self.idxmax:current_id]
             df = df[['Open', 'Close']]
 
-
             x_peaks = detect_peaks_guassian(df)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
@@ -96,7 +95,7 @@ class Trendline_test(Strategy):
 
             
             if tup_data_for_plotting:
-                df_plot_id = current_id + timedelta(hours=15)
+                df_plot_id = current_id + timedelta(days=3)
                 df_plot = self.data.df.loc[self.idxmax:df_plot_id]
 
                 self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)

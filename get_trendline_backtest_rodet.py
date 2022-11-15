@@ -318,26 +318,23 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     df_scatter, y_peaks_date, y_peaks, y_hat = tup_data[0], tup_data[1], tup_data[2], tup_data[3]
 
     trendl_plot = list(zip(df.index, y_hat))
-
-
-    #------------------------
-    # Skal have dumped trendl_x_y til en json fil, den skal ikke overskrives i hver iteration, men bare added nye værdier. ( Det er til at fortælle Tradingview API cordinater)
-    # Og skal det egentligt ikke ud i sin egen metode ?, eller er det for fingerknepperi ?.
-
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
 
     trendl_json = {
+
+        "xy":{
         
-        "x": [trendl_start_end[0][0].isoformat()], "y": [trendl_start_end[0][1]],
-        "x": [trendl_start_end[-1][0].isoformat()], "y": [trendl_start_end[-1][1]]
-        
+            "x1": f"{trendl_start_end[0][0].value//10**9}", 
+            "y1": f"{trendl_start_end[0][1]}",
+            "x2": f"{pd.to_datetime(trendl_start_end[-1][0]).value//10**9}", 
+            "y2": f"{trendl_start_end[-1][1]}"
+            
+            }
         }
 
     with open('data.json', 'a') as outfile:
         json.dump(trendl_json, outfile)
-
-    #------------------------
 
 
     path = './trendline_results'
