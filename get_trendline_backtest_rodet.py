@@ -319,7 +319,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     path = './trendline_results'
 
     ap = fplt.make_addplot(df_scatter['scatter'],type='scatter', markersize=70, color='blue')
-    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig=f'{str(df.index[0])}.png')
+    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig=f'{path}/{str(df.index[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True)
 
     df.reset_index(inplace=True)
