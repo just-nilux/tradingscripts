@@ -246,8 +246,6 @@ def trendline_angle_degree(trendl_candidates_df):
     trendl_candidates_df['angle_degree'] = trendl_candidates_df \
             .slope.apply(lambda x: math.degrees(math.atan(x)))
     
-    #print(trendl_candidates_df.angle_degree)
-
     if trendl_candidates_df.empty:
         return None
     else: 
@@ -271,17 +269,10 @@ def check_trendl_parameters(trendl_candidates_df):
     trendl_candidates_df.drop(trendl_candidates_df[
         trendl_candidates_df.r_value > -0.999].index, inplace=True)
     
-
-    #print(trendl_candidates_df)
-    #print(f'len after check: {len(trendl_candidates_df)}')
-
     if trendl_candidates_df.empty:
         return None
 
     else: 
-        print(trendl_candidates_df.angle_degree)
-
-
         return trendl_candidates_df
 
 def extract_data_for_plotting(df, final_trendline, x_peaks):
