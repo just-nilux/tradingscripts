@@ -93,6 +93,7 @@ class Trendline_test(Strategy):
             trendl_candidates_df = trendline_angle_degree(trendl_candidates_df)
             candidates_after_check = check_trendl_parameters(trendl_candidates_df)
             tup_data_for_plotting  = extract_data_for_plotting(df, candidates_after_check, x_peaks)
+
             
             if tup_data_for_plotting:
                 df_plot_id = current_id + timedelta(hours=15)
