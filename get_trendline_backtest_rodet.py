@@ -97,9 +97,8 @@ def tune_peaks(df, x_peaks):
     for peak in x_peaks:
         previous = peak - 30
         forward = peak + 30
-        #print(f'index before tuning: {peak}')
+
         highest_price = df.loc[previous:forward, 'Close'].idxmax()
-        #print(f'index after tuning: {highest_price}')
 
         x_peaks_np.append(highest_price)
 
@@ -247,8 +246,6 @@ def trendline_angle_degree(trendl_candidates_df):
     trendl_candidates_df['angle_degree'] = trendl_candidates_df \
             .slope.apply(lambda x: math.degrees(math.atan(x)))
     
-    #print(trendl_candidates_df.angle_degree)
-
     if trendl_candidates_df.empty:
         return None
     else: 
@@ -272,96 +269,75 @@ def check_trendl_parameters(trendl_candidates_df):
     trendl_candidates_df.drop(trendl_candidates_df[
         trendl_candidates_df.r_value > -0.999].index, inplace=True)
     
-
-    #print(trendl_candidates_df)
-    #print(f'len after check: {len(trendl_candidates_df)}')
-
     if trendl_candidates_df.empty:
         return None
 
     else: 
-        print(trendl_candidates_df.angle_degree)
-
-
         return trendl_candidates_df
 
+def extract_data_for_plotting(df, final_trendline, x_peaks):
 
+    if final_trendline is None: return
 
+    assert len(final_trendline) != 0 , f'No trendl candidates - (extract_data_for_plotting)'
 
-def plot_all_trendl(df, final_trendline, x_peaks):
-    if final_trendline is None:
-        return
-
-    assert len(final_trendline) != 0 , \
-            f'No trendl candidates - (plot_all_trendl)'
-
-
-    # plot peaks:
     df.reset_index(inplace=True)
 
+    # Save x,y peaks to list:
+
+    y_peaks_date = list()
     y_peaks = list()
-    x_peaks_date = list()
 
     for peak in x_peaks:   
+        y_peaks_date.append(df.iloc[peak].Date)
         y_peaks.append(df.iloc[peak].Close)
-        x_peaks_date.append(df.iloc[peak].Date)
-    
-    plt.scatter(x_peaks, y_peaks, c='green')
-    
 
-    # plot alle mulige trendlines:
+    # Calcualte x, y trendline slope:
 
     for row in final_trendline.iterrows():
         slope = row[1].slope
         intercept = row[1].intercept
         y_hat = slope*df.index + intercept
 
-        #plt.plot(df.index, y_hat, color='blue')
-    
-    #print(f'Areal under Trendline: {np.trapz(y_peaks, x=x_peaks)}') # Areal
 
-    # Plot best line:  
-    print(f'r_value: {final_trendline.r_value}')
-    plt.plot(df.index, y_hat, color='blue')
-    plt.plot(df.Close, '-')
+    # Fill scatter row for plotting:
 
-    plt.title('Trend Hunter - ETHUSDT - 1D')
-    plt.grid()
-    #plt.show()
-
-    #-----------------------------
-        
     for i, a in enumerate(x_peaks):
         df.loc[a, 'scatter'] = y_peaks[i]
 
-    df.set_index('Date', inplace=True)
+
+
+def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
+
+    if tup_data is None: return
+
+    df_scatter, y_peaks_date, y_peaks, y_hat = tup_data[0], tup_data[1], tup_data[2], tup_data[3]
+
     trendl_plot = list(zip(df.index, y_hat))
 
+    trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
+    #trendl_x_y = json.dumps(trendl_start_end)
 
-    path = 'trendline_results'
-    #os.chdir(path)
 
-    ap = fplt.make_addplot(df['scatter'], type='scatter', markersize=70, 
-            color='blue')
-    fig, axlist = fplt.plot(
-            df, 
-            figratio=(16,9), 
-            type='candle', 
-            style='binance', 
-            title='Trend Hunter - ETHUSDT - 15M', 
-            alines=dict(alines=trendl_plot), 
-            addplot=ap,
-            ylabel='Price ($)', 
-            volume=True, 
-            returnfig=True, 
-            savefig=f'{path}/{str(df.index[0])}.png'
-    )
+    path = '//home/traderblakeq/Python/tradingscripts/trendline_results'
+    os.chdir(path)
+
+    ap = fplt.make_addplot(df_scatter['scatter'],type='scatter', markersize=70, color='blue')
+    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True, savefig=f'{str(df.index[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', volume=True, returnfig=True)
 
-    #fplt.show()
+    df.reset_index(inplace=True)
+    plt.scatter(x_peaks, y_peaks, c='green')
+    plt.plot(df.index, y_hat, color='blue')
+    plt.plot(df.Close, '-')
+    plt.title('Trend Hunter - ETHUSDT - 1D')
+    plt.legend()
+    plt.grid()
+
+    fplt.show()
 
 
-    return True
+    return trendl_start_end
 
 
 
