@@ -324,12 +324,6 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     # Skal have dumped trendl_x_y til en json fil, den skal ikke overskrives i hver iteration, men bare added nye værdier. ( Det er til at fortælle Tradingview API cordinater)
     # Og skal det egentligt ikke ud i sin egen metode ?, eller er det for fingerknepperi ?.
 
-    x =  '{ "name":"John", "age":30, "city":"New York"}'
-
-    points = {"x":[], "y":[]}
-
-
-
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
 
     trendl_json = {
