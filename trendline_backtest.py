@@ -74,7 +74,7 @@ class Trendline_test(Strategy):
     
         if crossover(self.data.Lowerband, self.data.Close): 
 
-            self.idxmax = self.data.Close.s.tail(60).idxmax() 
+            self.idxmax = self.data.Close.s.tail(30).idxmax() 
             self.crossover = True
 
         if self.crossover:  
