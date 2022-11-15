@@ -276,7 +276,6 @@ def check_trendl_parameters(trendl_candidates_df):
         return trendl_candidates_df
 
 def extract_data_for_plotting(df, final_trendline, x_peaks):
-
     if final_trendline is None: return
 
     assert len(final_trendline) != 0 , f'No trendl candidates - (extract_data_for_plotting)'
@@ -305,7 +304,7 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
     for i, a in enumerate(x_peaks):
         df.loc[a, 'scatter'] = y_peaks[i]
 
-
+    return (df, y_peaks_date, y_peaks, y_hat) 
 
 def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
