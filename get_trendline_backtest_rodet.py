@@ -313,8 +313,15 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
     trendl_plot = list(zip(df.index, y_hat))
 
+
+    #------------------------
+    # Skal have dumped trendl_x_y til en fil, den skal ikke overskrives i hver iteration, men bare added nye værdier. ( Det er til at fortælle Tradingview API cordinater)
+    # Og skal det egentligt ikke ud i sin egen metode ?, eller er det for fingerknepperi ?.
+
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
     #trendl_x_y = json.dumps(trendl_start_end)
+    #------------------------
+
 
     path = '//home/traderblakeq/Python/tradingscripts/trendline_results'
     os.chdir(path)
