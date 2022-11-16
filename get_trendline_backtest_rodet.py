@@ -327,7 +327,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
         
             "x1": f"{trendl_start_end[0][0].value//10**9}", 
             "y1": f"{trendl_start_end[0][1]}",
-            "x2": f"{pd.to_datetime(trendl_start_end[-1][0]).value//10**9}", 
+            "x2": f"{trendl_start_end[-1][0].value//10**9}", 
             "y2": f"{trendl_start_end[-1][1]}"
             
             }
