@@ -4,7 +4,7 @@ from backtesting.test import SMA
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from get_trendline_backtest_rodet import *
+from get_trendline_backtest_optimized import *
 from datetime import timedelta
 
 def Supertrend(df, atr_period, multiplier):

@@ -43,7 +43,7 @@ def detect_peaks_guassian(df, sigma=0.5):
         return
 
     df.reset_index(inplace=True)
-    dataFiltered = gaussian_filter1d(df.Close, sigma=sigma)
+    dataFiltered = gaussian_filter1d(df.Close.to_numpy(), sigma=sigma)
     x_peaks = signal.argrelmax(dataFiltered)[0]
     
     tuned_peaks = tune_peaks(df, x_peaks)
@@ -189,7 +189,6 @@ def peak_regression(x_peak_combinations, y_peak_combinations):
                 x_peak_combinations[i], y_peak_combinations[i])
         
         if r_value < -0.999:
-            print(r_value)
             trendl_candidates_df    .loc[i, 'df_start_index'] = \
                     x_peak_combinations[i][0]
             trendl_candidates_df.loc[i, 'df_end_index'] = \
