@@ -85,6 +85,7 @@ class Trendline_test(Strategy):
             self.crossover = True
 
         if self.crossover:  
+            #print(self.data.Close.s)
 
             current_id = self.data.index[-1]
             df = self.df.loc[self.idxmax:current_id].copy()

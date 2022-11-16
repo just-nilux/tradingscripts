@@ -17,6 +17,7 @@ from scipy.stats import linregress
 
 
 
+
 def remove_to_close_peaks(x_peaks, too_close=8):
     """
     Return new array with peaks that are closer than :param too_close to
@@ -131,8 +132,8 @@ def all_combi_af_peaks(x_peaks):
         if item[0] == item[1] == item[2]:
             x_peaks_combinations_list.pop(i)
 
-    assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
-            f"Some Tuples with != 3"
+    #assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
+    #        f"Some Tuples with != 3"
 
     
     return x_peaks_combinations_list
@@ -149,8 +150,8 @@ def fetch_y_values_peaks(df, x_peak_combinations):
     if x_peak_combinations is None: 
         return
 
-    assert all(len(tup) == 3 for tup in x_peak_combinations), \
-            f"Some Tuples with len != 3"
+    #assert all(len(tup) == 3 for tup in x_peak_combinations), \
+    #        f"Some Tuples with len != 3"
 
     
     # Assign Y value to the highest of Open and Close at all peaks.
@@ -202,8 +203,8 @@ def peak_regression(x_peak_combinations, y_peak_combinations):
 
             trendl_candidates_df.sort_values('r_value', inplace=True)
 
-            assert len(trendl_candidates_df) != 0, \
-                f'No Trendl candidates - peak_regression'
+            #assert len(trendl_candidates_df) != 0, \
+            #   f'No Trendl candidates - peak_regression'
 
     
     return trendl_candidates_df
