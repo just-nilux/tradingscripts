@@ -177,6 +177,7 @@ def peak_regression(x_peak_combinations, y_peak_combinations):
     :param x_peak_combinations
         List of peak value combinations (tuples) of len 3
     """
+    
     if x_peak_combinations is None: 
         return pd.DataFrame()
 
