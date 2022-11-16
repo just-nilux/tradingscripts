@@ -70,7 +70,7 @@ class Trendline_test(Strategy):
         self.plotted = False
 
         self.df = self.data.df.copy()
-        self.df.drop(['High', 'Low', 'Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
+        self.df.drop(['High', 'Low', 'Supertrend', 'Lowerband', 'Upperband'], axis=1, inplace=True)
 
 
 
@@ -78,11 +78,12 @@ class Trendline_test(Strategy):
         
     
         if crossover(self.data.Lowerband, self.data.Close): 
-
+            
             self.idxmax = self.data.Close.s.tail(30).idxmax() 
             self.crossover = True
 
         if self.crossover:  
+
 
             current_id = self.data.index[-1]
             df = self.df.loc[self.idxmax:current_id].copy()
@@ -120,6 +121,7 @@ class Trendline_test(Strategy):
 
     
 df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2022-10':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df.drop(['Close_time', 'Volume'], axis=1, inplace=True)
 
 # Supertrend
 atr_period = 30
