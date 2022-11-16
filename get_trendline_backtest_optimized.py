@@ -307,8 +307,6 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
 
     df['scatter'] = np.nan
 
-    #df.insert(0, "scatter", np.nan)
-
     for i, a in enumerate(x_peaks):
 
         df.iloc[a, -1] = y_peaks[i]
@@ -364,7 +362,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
 
 def test_feed(df):
-    if len(df) == 100:
+    if len(df) == 1000:
         return True
 
     else: 

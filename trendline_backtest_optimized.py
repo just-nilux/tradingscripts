@@ -85,7 +85,7 @@ class Trendline_test(Strategy):
         if self.crossover:  
 
             current_id = self.data.index[-1]
-            df = self.df.loc[self.idxmax:current_id]
+            df = self.df.loc[self.idxmax:current_id].copy()
 
             x_peaks = detect_peaks_guassian(df)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
@@ -100,7 +100,7 @@ class Trendline_test(Strategy):
                 
                 if tup_data_for_plotting:
                     df_plot_id = current_id + timedelta(days=3)
-                    df_plot = self.data.df.loc[self.idxmax:df_plot_id]
+                    df_plot = self.data.df.loc[self.idxmax:df_plot_id].copy()
 
                     self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
                 
