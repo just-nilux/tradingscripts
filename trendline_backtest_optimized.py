@@ -85,7 +85,6 @@ class Trendline_test(Strategy):
         if self.crossover:  
 
             current_id = self.data.index[-1]
-
             df = self.df.loc[self.idxmax:current_id]
 
             x_peaks = detect_peaks_guassian(df)
@@ -120,7 +119,7 @@ class Trendline_test(Strategy):
 
 
     
-df = pd.read_pickle('ETHUSDT15M.pkl').loc['2022-10':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2022-10':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
 
 # Supertrend
 atr_period = 30

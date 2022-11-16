@@ -305,8 +305,13 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
 
     # Fill scatter row for plotting:
 
+    df['scatter'] = np.nan
+
+    #df.insert(0, "scatter", np.nan)
+
     for i, a in enumerate(x_peaks):
-        df.loc[a, 'scatter'] = y_peaks[i]
+
+        df.iloc[a, -1] = y_peaks[i]
 
     return (df, y_peaks_date, y_peaks, y_hat) 
 
