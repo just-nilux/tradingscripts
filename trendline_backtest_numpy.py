@@ -4,7 +4,7 @@ from backtesting.test import SMA
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from get_trendline_backtest_optimized import *
+from get_trendline_backtest_numpy import *
 from datetime import timedelta
 
 
@@ -74,60 +74,41 @@ class Trendline_test(Strategy):
 
         self.crossover = False
         self.plotted = True
+        self.highest_close = self.data.Close[-1]
 
         self.df = self.data.df.copy()
         self.df.drop(['High', 'Low', 'Supertrend', 'Lowerband', 'Upperband'], axis=1, inplace=True)
 
 
-
     def next(self):
-
-        #print(self.data)
         
     
         if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
 
-            i = len(self.data)
-
-            print(self.data)
-            find_swing_high = self.data[i - 30:i]
-            print(find_swing_high)
             
             # Højeste Close pris i de sidste n perioder:
-            self.swing_high  = self.data.index[np.argsort(self.data.Close)[::-30][:1]]
-
-
-
-            #print(self.data.Close.s)
-            #print(self.data)
-            #print(self.data.index[-1])
-            #print(self.data.Close[-1])
-            #print(self.data)
-            #print(self.data.index[-1])
-            #print(self.idxmax)
-            #print(self.swing_high)
-            #print(self.data.index[-1])
-
-            
-            
-            time.sleep(1)
+            #self.swing_high  = self.data.index[np.argsort(self.data.Close)[::-30][:1]]
+            #print(self.data.Close[34:])
+            #print(self.data.Close.s.loc['2022-11-01 10:30:00'])  
+            #test_var = self.data.Close[np.argsort(self.data.Close)[::-30][:1]]
 
             self.crossover = True
             self.plotted = False
+            
+            self.highest_close = self.data.Close[:30].argmax()
+
 
         if self.crossover:  
 
+            i = len(self.data)
 
-            slice = self.data[self.swing_high:]
-            print(slice)
+            index = self.data.index[self.highest_close:i] 
+            close = self.data.Close[self.highest_close:i]
+            open = self.data.Open[self.highest_close:i]
 
-
-
-            df = self.df.loc[self.idxmax:current_id].copy()
-
-            x_peaks = detect_peaks_guassian(df)
+            x_peaks = detect_peaks_guassian(index, close, open)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
-            y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
+            y_peaks_combination_list = fetch_y_values_peaks(open, close, x_peaks_combinations_list)
             trendl_candidates_df = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)
             if not trendl_candidates_df.empty:          
                 trendl_candidates_df = fetch_trendl_start_end_price(df, trendl_candidates_df)
@@ -137,8 +118,7 @@ class Trendline_test(Strategy):
 
                 
                 if tup_data_for_plotting:
-                    df_plot_id = current_id + timedelta(days=3)
-                    df_plot = self.data.df.loc[self.idxmax:df_plot_id].copy()
+                    df_plot = self.data.df.loc[self.data.index[highest_close:]]
 
                     self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
                 

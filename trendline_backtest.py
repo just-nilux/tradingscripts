@@ -79,14 +79,11 @@ class Trendline_test(Strategy):
         
     
         if self.plotted and crossover(self.data.Lowerband, self.data.Close): 
+
             self.idxmax = self.data.Close.s.tail(30).idxmax() 
+            
             self.crossover = True
             self.plotted = False
-
-            print(self.data.index)
-            print(len(self.data.Close))
-            print(self.data.Close)
-            print(self.data.Close.s)
 
 
         if self.crossover:  

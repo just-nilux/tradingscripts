@@ -21,31 +21,33 @@ def remove_to_close_peaks(x_peaks, too_close=8):
     Return new array with peaks that are closer than :param too_close to
     each other removed
     """
-    temp = list()
+    
+    temp = np.array([])
+
     for i, peak in enumerate(x_peaks):
         if i != 0 and peak - temp[-1] < too_close:
-            temp.pop(-1)
-        temp.append(peak)
+            temp = np.delete(temp, -1)
+        temp = np.append(temp, peak)
+
     
-    return np.asarray(temp) 
+    return temp
 
 
 
-def detect_peaks_guassian(df, sigma=0.5):
+def detect_peaks_guassian(index, close, open, sigma=0.5):
     """
     Detect peaks from DataFrame.Close series using Gaussian filter.
 
     :param sigma
         Standard deviation of Gaussian filter.
     """
-    if df is None: 
+    if close is None: 
         return
 
-    df.reset_index(inplace=True)
-    dataFiltered = gaussian_filter1d(df.Close.to_numpy(), sigma=sigma)
+    dataFiltered = gaussian_filter1d(close, sigma=sigma)
     x_peaks = signal.argrelmax(dataFiltered)[0]
     
-    tuned_peaks = tune_peaks(df, x_peaks)
+    tuned_peaks = tune_peaks(close, x_peaks)
     cleaned_peaks = remove_to_close_peaks(tuned_peaks)
     
     if len(cleaned_peaks) > 3:
@@ -83,25 +85,33 @@ def detect_peaks_cwt(df):
     
          
 
-def tune_peaks(df, x_peaks):
+def tune_peaks(close, x_peaks):
     """
-    Get the highest value of previous 10 candles / 10 future candles 
+    Get the highest value of previous 30 candles / 30 future candles 
     from peak
     """
+
     if x_peaks is False: 
         return
 
-    x_peaks_np = list()
-
-    df.reset_index(inplace=True)
+    x_peaks_np = np.array([])
 
     for peak in x_peaks:
+
         previous = peak - 30
         forward = peak + 30
 
-        highest_price = df.loc[previous:forward, 'Close'].idxmax()
+        if previous <= 0:
+            highest_close_in_range = close[0:forward].argmax()
+        elif forward > len(close):
 
-        x_peaks_np.append(highest_price)
+            highest_close_in_range = close[previous:len(close)].argmax()
+        else:
+            highest_close_in_range = close[previous:forward].argmax()
+        
+    
+        x_peaks_np =  np.append(x_peaks_np, highest_close_in_range)
+
 
     return x_peaks_np
 
@@ -138,7 +148,7 @@ def all_combi_af_peaks(x_peaks):
 
 
 
-def fetch_y_values_peaks(df, x_peak_combinations):
+def fetch_y_values_peaks(open, close , x_peak_combinations):
     """
     Return max(df.Close, df.Open) at each peak in peak combinations list.
 
@@ -150,11 +160,10 @@ def fetch_y_values_peaks(df, x_peak_combinations):
 
     #assert all(len(tup) == 3 for tup in x_peak_combinations), \
     #        f"Some Tuples with len != 3"
-
     
     # Assign Y value to the highest of Open and Close at all peaks.
     # The resulting series, s_max is a numpy array.
-    s_max = np.maximum(df.Open, df.Close)
+    s_max = np.maximum(open, close)
 
     # Extract series of peaks.
     X = zip(*x_peak_combinations)

@@ -41,7 +41,6 @@ def detect_peaks_guassian(df, sigma=0.5):
     if df is None: 
         return
 
-    df.reset_index(inplace=True)
     dataFiltered = gaussian_filter1d(df.Close.to_numpy(), sigma=sigma)
     x_peaks = signal.argrelmax(dataFiltered)[0]
     
