@@ -82,7 +82,7 @@ class Trendline_test(Strategy):
 
     def next(self):
 
-        print(self.data)
+        #print(self.data)
         
     
         if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
