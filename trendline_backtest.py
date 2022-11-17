@@ -83,6 +83,11 @@ class Trendline_test(Strategy):
             self.crossover = True
             self.plotted = False
 
+            print(self.data.index)
+            print(len(self.data.Close))
+            print(self.data.Close)
+            print(self.data.Close.s)
+
 
         if self.crossover:  
 
