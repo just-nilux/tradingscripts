@@ -8,6 +8,10 @@ from get_trendline_backtest_optimized import *
 from datetime import timedelta
 
 
+import time
+
+
+
 
 def Supertrend(df, atr_period, multiplier):
     
@@ -69,7 +73,7 @@ class Trendline_test(Strategy):
         self.idxmax = self.data.index[-1]
 
         self.crossover = False
-        self.plotted = False
+        self.plotted = True
 
         self.df = self.data.df.copy()
         self.df.drop(['High', 'Low', 'Supertrend', 'Lowerband', 'Upperband'], axis=1, inplace=True)
@@ -77,15 +81,33 @@ class Trendline_test(Strategy):
 
 
     def next(self):
+
+        print(self.data)
         
     
-        if crossover(self.data.Lowerband, self.data.Close): 
+        if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
+
+            self.idxmax = self.data.Close.s.tail(30).idxmax()
             
-            self.idxmax = self.data.Close.s.tail(30).idxmax() 
+            # np version of self.idxmax
+            idxmax_np = np.argsort(self.data.Close)[::-30][:1]
+            #index_np = self.data.index[idxmax_np]
+
+
+            #print(self.data)
+            #print(self.data.index[-1])
+            #print(self.data.Close[-1])
+            #print(self.idxmax)
+            #print(index_np)
+
+            
+            
+            #time.sleep(1)
+
             self.crossover = True
+            self.plotted = False
 
         if self.crossover:  
-            #print(self.data.Close.s)
 
             current_id = self.data.index[-1]
             df = self.df.loc[self.idxmax:current_id].copy()
@@ -122,7 +144,7 @@ class Trendline_test(Strategy):
 
 
     
-df = pd.read_pickle('ETHUSDT15M.pkl').loc['2021-05':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2022-08':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
 df.drop(['Close_time', 'Volume'], axis=1, inplace=True)
 
 # Supertrend
@@ -130,6 +152,8 @@ atr_period = 30
 atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
+
+df = df.loc['2022-08 - 02:00:00':]
 
 
 bt = Backtest(df, Trendline_test,
