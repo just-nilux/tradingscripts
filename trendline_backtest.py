@@ -4,7 +4,7 @@ from backtesting.test import SMA
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from get_trendline_backtest_rodet import *
+from get_trendline_backtest_optimized import *
 from datetime import timedelta
 
 def Supertrend(df, atr_period, multiplier):
@@ -86,7 +86,7 @@ class Trendline_test(Strategy):
 
             current_id = self.data.index[-1]
 
-            df = self.df.loc[self.idxmax:current_id]
+            df = self.df.loc[self.idxmax:current_id].copy()
 
             x_peaks = detect_peaks_guassian(df)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
