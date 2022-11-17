@@ -333,9 +333,12 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
             "y2": f"{trendl_start_end[-1][1]}"
         })
 
+    with open("data.json", "r") as f:
+        data_list = json.load(f)
+    data_list.append(trendl_dict)
 
-    with open('data.json', 'a') as outfile:
-        json.dump(list(trendl_dict), outfile)
+    with open('data.json', 'w') as outfile:
+        json.dump(data_list, outfile)
         
 
     path = './trendline_results'
