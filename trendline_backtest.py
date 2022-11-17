@@ -75,11 +75,6 @@ class Trendline_test(Strategy):
         self.df.drop(['High', 'Low', 'Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
 
 
-        atexit.register(write_json, self.tw_list)
-
-
-
-
     def next(self):
         
     
