@@ -7,6 +7,7 @@ import numpy as np
 from get_trendline_backtest_optimized import *
 from datetime import timedelta
 
+
 def Supertrend(df, atr_period, multiplier):
     
     high = df['High']
@@ -64,23 +65,29 @@ class Trendline_test(Strategy):
 
     def init(self):
 
+
         self.idxmax = self.data.index[-1]
 
         self.crossover = False
-        self.plotted = False
+        self.plotted = True
 
         self.df = self.data.df.copy()
         self.df.drop(['High', 'Low', 'Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
+
+
+        atexit.register(write_json, self.tw_list)
+
 
 
 
     def next(self):
         
     
-        if crossover(self.data.Lowerband, self.data.Close): 
-
+        if self.plotted and crossover(self.data.Lowerband, self.data.Close): 
             self.idxmax = self.data.Close.s.tail(30).idxmax() 
             self.crossover = True
+            self.plotted = False
+
 
         if self.crossover:  
 
@@ -102,14 +109,15 @@ class Trendline_test(Strategy):
                 if tup_data_for_plotting:
                     df_plot_id = current_id + timedelta(days=3)
                     df_plot = self.data.df.loc[self.idxmax:df_plot_id]
-
+                    
                     self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
-                
+
                 #self.plotted = test_feed(df)
 
                     if self.plotted == True:
                         print('Trendline have been found')
                         self.crossover = False
+
 
             # 1 - Fetch idxmax for starting point of peak search 
             # 2 - Feed df with same start index to "detect_peaks_gaussion, add one candle more at a time in each iteration.  

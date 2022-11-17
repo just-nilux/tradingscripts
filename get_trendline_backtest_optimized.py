@@ -16,8 +16,6 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import linregress
 
 
-
-
 def remove_to_close_peaks(x_peaks, too_close=8):
     """
     Return new array with peaks that are closer than :param too_close to
@@ -327,21 +325,18 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
 
-    trendl_json = {
-
-        "xy":{
+    trendl_dict = dict({
         
             "x1": f"{trendl_start_end[0][0].value//10**9}", 
             "y1": f"{trendl_start_end[0][1]}",
             "x2": f"{trendl_start_end[-1][0].value//10**9}", 
             "y2": f"{trendl_start_end[-1][1]}"
-            
-            }
-        }
+        })
+
 
     with open('data.json', 'a') as outfile:
-        json.dump(trendl_json, outfile)
-
+        json.dump(list(trendl_dict), outfile)
+        
 
     path = './trendline_results'
 
