@@ -95,7 +95,7 @@ class Trendline_test(Strategy):
             self.crossover = True
             self.plotted = False
             
-            self.highest_close = self.data.Close[:30].argmax()
+            self.highest_close = self.data.Close[:-30].argmax()
 
 
         if self.crossover:  

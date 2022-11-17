@@ -143,7 +143,8 @@ def all_combi_af_peaks(x_peaks):
     #assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
     #        f"Some Tuples with != 3"
 
-    
+       #------------------------------------
+ 
     return x_peaks_combinations_list
 
 
@@ -168,7 +169,7 @@ def fetch_y_values_peaks(open, close , x_peak_combinations):
     # Extract series of peaks.
     X = zip(*x_peak_combinations)
     X1, X2, X3 = (list(x) for x in X)
-
+    
     # Bundle up values as tuples of len 3.
     y_peak_combinations = [tuple(y) for y in
             zip(s_max[X1], s_max[X2], s_max[X3])] 

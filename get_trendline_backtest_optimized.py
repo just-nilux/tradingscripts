@@ -129,6 +129,22 @@ def all_combi_af_peaks(x_peaks):
         if item[0] == item[1] == item[2]:
             x_peaks_combinations_list.pop(i)
 
+    #------------------------------------
+
+    x_peaks_combinations_array = np.array([])
+
+    for n in range(len(x_peaks) +1):
+        x_peaks_combinations_array = np.append(x_peaks_combinations_array, combinations(x_peaks, 3))
+
+    x_peaks_combinations_list.sort(key=lambda tup: tup[1])
+    x_peaks_combinations_list = list(dict.fromkeys(
+            x_peaks_combinations_list))
+    
+    # Remove any non distinct combinations.
+    for i, item in enumerate(x_peaks_combinations_list):
+        if item[0] == item[1] == item[2]:
+            x_peaks_combinations_list.pop(i)
+
     #assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
     #        f"Some Tuples with != 3"
 
