@@ -8,10 +8,6 @@ from get_trendline_backtest_optimized import *
 from datetime import timedelta
 
 
-import time
-
-
-
 
 def Supertrend(df, atr_period, multiplier):
     
@@ -70,10 +66,10 @@ class Trendline_test(Strategy):
 
     def init(self):
 
-        self.swing_high = self.data.index[-1]
+        self.idxmax = self.data.index[-1]
 
         self.crossover = False
-        self.plotted = True
+        self.plotted = False
 
         self.df = self.data.df.copy()
         self.df.drop(['High', 'Low', 'Supertrend', 'Lowerband', 'Upperband'], axis=1, inplace=True)
@@ -81,48 +77,17 @@ class Trendline_test(Strategy):
 
 
     def next(self):
-
-        #print(self.data)
         
     
-        if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
-
-            i = len(self.data)
-
-            print(self.data)
-            find_swing_high = self.data[i - 30:i]
-            print(find_swing_high)
+        if crossover(self.data.Lowerband, self.data.Close): 
             
-            # Højeste Close pris i de sidste n perioder:
-            self.swing_high  = self.data.index[np.argsort(self.data.Close)[::-30][:1]]
-
-
-
-            #print(self.data.Close.s)
-            #print(self.data)
-            #print(self.data.index[-1])
-            #print(self.data.Close[-1])
-            #print(self.data)
-            #print(self.data.index[-1])
-            #print(self.idxmax)
-            #print(self.swing_high)
-            #print(self.data.index[-1])
-
-            
-            
-            time.sleep(1)
-
+            self.idxmax = self.data.Close.s.tail(30).idxmax() 
             self.crossover = True
-            self.plotted = False
 
         if self.crossover:  
+            #print(self.data.Close.s)
 
-
-            slice = self.data[self.swing_high:]
-            print(slice)
-
-
-
+            current_id = self.data.index[-1]
             df = self.df.loc[self.idxmax:current_id].copy()
 
             x_peaks = detect_peaks_guassian(df)
@@ -157,7 +122,7 @@ class Trendline_test(Strategy):
 
 
     
-df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2022-08':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df = pd.read_pickle('ETHUSDT15M.pkl').loc['2021-05':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
 df.drop(['Close_time', 'Volume'], axis=1, inplace=True)
 
 # Supertrend
@@ -165,9 +130,6 @@ atr_period = 30
 atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
-
-df = df.loc['2022-11 - 02:00:00':]
-
 
 
 bt = Backtest(df, Trendline_test,
