@@ -6,23 +6,9 @@ import os
 
 
 def formatData(data):
-    df = pd.DataFrame(
-            data, 
-            columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore']
-    )
-    
-    date = pd.to_datetime(df['Date'],unit='ms').dt.strftime("%Y-%m-%d %H:%M:%S")
-    print(type(date))
-    df['Close_time'] = pd.to_datetime(df['Close_time'],unit='ms') + timedelta(seconds=1)
-    Close_time = df['Close_time'].dt.strftime('%Y-%m-%d %H:%M:%S').astype(str).str.upper()
-    
-    df = df[['Open', 'High', 'Low', 'Close', 'Volume']].astype(float)
-    df = df.join(date)
-    df = df.join(Close_time)
-    
-    df.set_index('Date', inplace=True)
-    df = df.loc[~df.index.duplicated()]
-    df = df.sort_index()
+
+    df = pd.DataFrame(data, columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore']).astype(float)
+    df.drop(columns=['Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'], inplace=True)
 
     df['Date'] = pd.to_datetime(df['Date'],unit='ms').apply(lambda x: x.to_datetime64())
     df['Close_time'] = pd.to_datetime(df['Close_time'],unit='ms') + timedelta(seconds=0.001)
@@ -32,7 +18,7 @@ def formatData(data):
     df.set_index('Date', inplace=True)
     df.sort_index(inplace=True)
     df = df.loc[~df.index.duplicated()]
-    
+    print(df.head())
     return df
 
 
@@ -40,17 +26,9 @@ def main(symbol, interval, start=None, stop=None, *args, **kwargs):
 
     """Method to fetch historical data from Binance API  - ex.: df = klineHunter('ethusdt', '1d', '2022-01-01')"""
 
-    client = Client(
-            "wca05r3DNe36Q3yusf3uJlpyW7qfZGYP623DtrgeHynzfWct6Kv5jINCxZF684rd", 
-            "28DE1cQbb7427tlVP4ZBqhkR0etHr9ErSxVd4htIngHWN8y5ZT6WjYz87aint39u"
-    )
+    client = Client("wca05r3DNe36Q3yusf3uJlpyW7qfZGYP623DtrgeHynzfWct6Kv5jINCxZF684rd", "28DE1cQbb7427tlVP4ZBqhkR0etHr9ErSxVd4htIngHWN8y5ZT6WjYz87aint39u")
 
-    data = client.get_historical_klines(
-            str(symbol).upper(), 
-            interval, 
-            start, 
-            stop
-    )
+    data = client.get_historical_klines(str(symbol).upper(), interval, start, stop)
 
     df = formatData(data)
 
@@ -62,6 +40,8 @@ def main(symbol, interval, start=None, stop=None, *args, **kwargs):
     print(f'Historical data have been saved to: {path}/{symbol.upper()}{interval.upper()}.pkl')
     
     return df
+
+
 
 if __name__=='__main__':
     import sys 
