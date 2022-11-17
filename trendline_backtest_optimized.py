@@ -131,6 +131,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
+df = df.loc['2022-10']
 
 bt = Backtest(df, Trendline_test,
               cash=1000_000, 
