@@ -43,7 +43,7 @@ def remove_to_close_peaks_array(x_peaks, too_close=8):
     temp = np.array([])
 
     for i, peak in enumerate(x_peaks):
-        if i==0: np.append(temp, peak)
+        if i==0: temp = np.append(temp, peak)
         elif abs(temp[-1]-peak) < too_close:
             continue
         else:
