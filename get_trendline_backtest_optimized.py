@@ -16,19 +16,22 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import linregress
 
 
+
 def remove_to_close_peaks(x_peaks, too_close=8):
     """
     Return new array with peaks that are closer than :param too_close to
     each other removed
     """
     temp = list()
-    for i, peak in enumerate(x_peaks):
-        if i != 0 and peak - temp[-1] < too_close:
-            temp.pop(-1)
-        temp.append(peak)
-    
-    return np.asarray(temp) 
 
+    for i, peak in enumerate(x_peaks):
+        if i==0: temp.append(peak)
+        elif abs(temp[-1]-peak) < too_close:
+            continue
+        else: 
+            temp.append(peak)
+    
+    return temp 
 
 
 def detect_peaks_guassian(df, sigma=0.5):
@@ -42,45 +45,18 @@ def detect_peaks_guassian(df, sigma=0.5):
         return
 
     dataFiltered = gaussian_filter1d(df.Close.to_numpy(), sigma=sigma)
-    x_peaks = signal.argrelmax(dataFiltered)[0]
-    
-    tuned_peaks = tune_peaks(df, x_peaks)
-    cleaned_peaks = remove_to_close_peaks(tuned_peaks)
-    
-    if len(cleaned_peaks) > 3:
+    x_peaks = signal.argrelmax(dataFiltered, order=10)[0]
+    #tuned_peaks = tune_peaks(df, x_peaks)
+    cleaned_peaks = remove_to_close_peaks(x_peaks)
+
+    if len(cleaned_peaks) >= 3:
         return cleaned_peaks
 
     else: 
         return False
 
 
-def detect_peaks_cwt(df):
-    """
-    Find peaks in a 1-D array with wavelet transformation. 
-    """
-    w1 = [2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-    w2 = [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
-    
 
-    peak_list = list()
-    for x in w1:
-        for x1 in w2:
-            try:
-                x_peaks = find_peaks_cwt(df.Close, 
-                        widths=np.arange(x, x1))
-            except:
-                continue
-
-            x_peaks = remove_to_close_peaks(x_peaks)
-            if len(x_peaks) > 3 and len(x_peaks) < 10:
-                peak_list.append(x_peaks)
-    
-    if len(peak_list) > 0: 
-        return min(peak_list,key=len)
-    else: 
-        return False
-    
-         
 
 def tune_peaks(df, x_peaks):
     """
@@ -117,38 +93,16 @@ def all_combi_af_peaks(x_peaks):
 
     x_peaks_combinations_list = list()
 
-    for n in range(len(x_peaks) +1):
-        x_peaks_combinations_list += list(combinations(x_peaks, 3))
+    x_peaks_combinations_list += list(combinations(x_peaks, 3))
 
     x_peaks_combinations_list.sort(key=lambda tup: tup[1])
     x_peaks_combinations_list = list(dict.fromkeys(
             x_peaks_combinations_list))
     
     # Remove any non distinct combinations.
-    for i, item in enumerate(x_peaks_combinations_list):
-        if item[0] == item[1] == item[2]:
-            x_peaks_combinations_list.pop(i)
+    ([x_peaks_combinations_list.pop(a) for a, i in enumerate(x_peaks_combinations_list) if i[0]==i[1]==i[2]])
 
-    #------------------------------------
 
-    x_peaks_combinations_array = np.array([])
-
-    for n in range(len(x_peaks) +1):
-        x_peaks_combinations_array = np.append(x_peaks_combinations_array, combinations(x_peaks, 3))
-
-    x_peaks_combinations_list.sort(key=lambda tup: tup[1])
-    x_peaks_combinations_list = list(dict.fromkeys(
-            x_peaks_combinations_list))
-    
-    # Remove any non distinct combinations.
-    for i, item in enumerate(x_peaks_combinations_list):
-        if item[0] == item[1] == item[2]:
-            x_peaks_combinations_list.pop(i)
-
-    #assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
-    #        f"Some Tuples with != 3"
-
-    
     return x_peaks_combinations_list
 
 
@@ -184,7 +138,7 @@ def fetch_y_values_peaks(df, x_peak_combinations):
 
 
 
-def peak_regression(x_peak_combinations, y_peak_combinations):
+def peak_regression(df, x_peak_combinations, y_peak_combinations):
     """
     :param x_peak_combinations
         List of peak index combinations (tuples) of len 3
@@ -195,32 +149,27 @@ def peak_regression(x_peak_combinations, y_peak_combinations):
     if x_peak_combinations is None: 
         return pd.DataFrame()
 
-    trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 
-            'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 
-            'std_err'])
 
     for i in range(len(x_peak_combinations)):
         slope, intercept, r_value, p_value, std_err  = linregress(
                 x_peak_combinations[i], y_peak_combinations[i])
         
         if r_value < -0.999:
-            trendl_candidates_df    .loc[i, 'df_start_index'] = \
-                    x_peak_combinations[i][0]
-            trendl_candidates_df.loc[i, 'df_end_index'] = \
-                    x_peak_combinations[i][2]
-            trendl_candidates_df.loc[i, 'slope'] = slope
-            trendl_candidates_df.loc[i, 'intercept'] = intercept
-            trendl_candidates_df.loc[i, 'r_value'] = r_value
-            trendl_candidates_df.loc[i, 'p_value'] = p_value
-            trendl_candidates_df.loc[i, 'std_err'] = std_err
+            df.loc[i, 'df_start_index'] = x_peak_combinations[i][0]
+            df.loc[i, 'df_end_index'] = x_peak_combinations[i][2]
+            df.loc[i, 'slope'] = slope
+            df.loc[i, 'intercept'] = intercept
+            df.loc[i, 'r_value'] = r_value
+            df.loc[i, 'p_value'] = p_value
+            df.loc[i, 'std_err'] = std_err
 
-            trendl_candidates_df.sort_values('r_value', inplace=True)
+            df.sort_values('r_value', inplace=True)
 
             #assert len(trendl_candidates_df) != 0, \
             #   f'No Trendl candidates - peak_regression'
 
     
-    return trendl_candidates_df
+    return df
 
 
 
@@ -228,7 +177,9 @@ def fetch_trendl_start_end_price(df, trendl_candidate_df):
 
     if trendl_candidate_df is None: 
         return
-    
+
+    df.reset_index(inplace=True)
+
     start_price = list()
     start_date = list()
 
@@ -339,7 +290,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     trendl_plot = list(zip(df.index, y_hat))
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
-
+    
     trendl_dict = dict({
         
             "x1": f"{trendl_start_end[0][0].value//10**9}", 
@@ -354,7 +305,9 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
 
     with open('data.json', 'w') as outfile:
         json.dump(data_list, outfile)
-        
+    
+    print(df_scatter['scatter'])
+    print(len(df))
 
     path = './trendline_results'
 

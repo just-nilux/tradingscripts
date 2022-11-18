@@ -76,27 +76,21 @@ class Trendline_test(Strategy):
         self.plotted = True
         self.highest_close = self.data.Close[-1]
 
-        self.df = self.data.df.copy()
-        self.df.drop(['High', 'Low', 'Supertrend', 'Lowerband', 'Upperband'], axis=1, inplace=True)
+        self.trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 'std_err'])
 
 
     def next(self):
         
-    
         if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
 
-            
-            # Højeste Close pris i de sidste n perioder:
-            #self.swing_high  = self.data.index[np.argsort(self.data.Close)[::-30][:1]]
-            #print(self.data.Close[34:])
-            #print(self.data.Close.s.loc['2022-11-01 10:30:00'])  
-            #test_var = self.data.Close[np.argsort(self.data.Close)[::-30][:1]]
+        
+            i = len(self.data)
 
             self.crossover = True
             self.plotted = False
             
-            self.highest_close = self.data.Close[:-30].argmax()
-
+            self.highest_close = len(self.data.index) - self.data.Close[i -30:i].argmax(axis=0)
+    
 
         if self.crossover:  
 
@@ -106,24 +100,22 @@ class Trendline_test(Strategy):
             close = self.data.Close[self.highest_close:i]
             open = self.data.Open[self.highest_close:i]
 
+
             x_peaks = detect_peaks_guassian(index, close, open)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(open, close, x_peaks_combinations_list)
-            trendl_candidates_df = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)
+            trendl_candidates_df = peak_regression(self.trendl_candidates_df, x_peaks_combinations_list, y_peaks_combination_list)
             if not trendl_candidates_df.empty:          
-                trendl_candidates_df = fetch_trendl_start_end_price(df, trendl_candidates_df)
+                #trendl_candidates_df = fetch_trendl_start_end_price(self.data.df, trendl_candidates_df)
                 trendl_candidates_df = trendline_angle_degree(trendl_candidates_df)
                 candidates_after_check = check_trendl_parameters(trendl_candidates_df)
-                tup_data_for_plotting  = extract_data_for_plotting(df, candidates_after_check, x_peaks)
-
+                tup_data_for_plotting  = extract_data_for_plotting_numpy(close, index, candidates_after_check, x_peaks)
                 
                 if tup_data_for_plotting:
-                    df_plot = self.data.df.loc[self.data.index[highest_close:]]
+                    lol = self.data.df[self.highest_close:i]
 
-                    self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
+                    self.plotted = plot_final_peaks_and_final_trendline(lol, tup_data_for_plotting, x_peaks)
                 
-                #self.plotted = test_feed(df)
-
                     if self.plotted == True:
                         print('Trendline have been found')
                         self.crossover = False
@@ -137,7 +129,7 @@ class Trendline_test(Strategy):
 
 
     
-df = pd.read_pickle('ETHUSDT15M.pkl')#.loc['2022-08':]#.loc['2018-05-06':'2018-05-07 03:00:00'] #.loc['2022-11-09':'2022-11-10']
+df = pd.read_pickle('ETHUSDT15M.pkl')
 df.drop(['Close_time', 'Volume'], axis=1, inplace=True)
 
 # Supertrend
@@ -146,8 +138,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-11 - 02:00:00':]
-
+df = df#.loc['2022-11 - 02:00:00':]
 
 
 bt = Backtest(df, Trendline_test,

@@ -73,6 +73,8 @@ class Trendline_test(Strategy):
 
         self.df = self.data.df.copy()
         self.df.drop(['High', 'Low', 'Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
+        self.trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 'std_err'])
+
 
 
     def next(self):
@@ -80,7 +82,9 @@ class Trendline_test(Strategy):
     
         if self.plotted and crossover(self.data.Lowerband, self.data.Close): 
 
-            self.idxmax = self.data.Close.s.tail(30).idxmax() 
+            #self.idxmax = self.data.Close.s.tail(30).idxmax() 
+            self.idxmax = self.data.index[self.data.Close[:-30].argmax()]
+
             
             self.crossover = True
             self.plotted = False
@@ -94,10 +98,10 @@ class Trendline_test(Strategy):
 
             x_peaks = detect_peaks_guassian(df)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
-            y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)
-            trendl_candidates_df = peak_regression(x_peaks_combinations_list, y_peaks_combination_list)
+            y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)            
+            trendl_candidates_df = peak_regression(self.trendl_candidates_df, x_peaks_combinations_list, y_peaks_combination_list)
             if not trendl_candidates_df.empty:          
-                trendl_candidates_df = fetch_trendl_start_end_price(df, trendl_candidates_df)
+                #trendl_candidates_df = fetch_trendl_start_end_price(df, trendl_candidates_df)
                 trendl_candidates_df = trendline_angle_degree(trendl_candidates_df)
                 candidates_after_check = check_trendl_parameters(trendl_candidates_df)
                 tup_data_for_plotting  = extract_data_for_plotting(df, candidates_after_check, x_peaks)
@@ -133,7 +137,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-10']
+df = df.loc['2022-11 - 02:00:00':]
 
 bt = Backtest(df, Trendline_test,
               cash=1000_000, 
