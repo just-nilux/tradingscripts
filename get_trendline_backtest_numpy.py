@@ -14,7 +14,7 @@ from scipy.stats import linregress
 from pandas import DataFrame
 
 
-def remove_to_close_peaks_list(x_peaks, too_close=8):
+def remove_to_close_peaks_list(x_peaks, too_close=6):
 
     #x_peaks= (21,23,45,57,68,69)
 
@@ -32,7 +32,7 @@ def remove_to_close_peaks_list(x_peaks, too_close=8):
     return temp
 
 
-def remove_to_close_peaks_array(x_peaks, too_close=8):
+def remove_to_close_peaks_array(x_peaks, too_close=6):
     """
     Return new array with peaks that are closer than :param too_close to
     each other removed
@@ -51,20 +51,22 @@ def remove_to_close_peaks_array(x_peaks, too_close=8):
 
 
 
-def detect_peaks_guassian(index, close, open, sigma=0.5):
+def detect_peaks_guassian(index, price, sigma=2):
     """
     Detect peaks from DataFrame.Close series using Gaussian filter.
 
     :param sigma
         Standard deviation of Gaussian filter.
     """
-    if close is None: 
+
+    if price is None: 
         return
 
-    dataFiltered = gaussian_filter1d(close, sigma=sigma)
+    dataFiltered = gaussian_filter1d(price, sigma=sigma)
     x_peaks = signal.argrelmax(dataFiltered)[0]
-
-    #tuned_peaks = tune_peaks(close, x_peaks)
+    #print(x_peaks)
+    tuned_peaks = tune_peaks(price, x_peaks)
+    #print(tuned_peaks)
     cleaned_peaks = remove_to_close_peaks_list(x_peaks)
 
 
@@ -89,8 +91,8 @@ def tune_peaks(close, x_peaks):
 
     for peak in x_peaks:
 
-        previous = peak - 30
-        forward = peak + 30
+        previous = peak - 20
+        forward = peak + 20
 
         if previous <= 0:
             highest_close_in_range = close[0:forward].argmax()
@@ -283,7 +285,6 @@ def extract_data_for_plotting_numpy(close, index, final_trendline, x_peaks):
     y_peaks_date = list()
     y_peaks = list()
 
-
     for peak in x_peaks:
         y_peaks_date.append(index[peak])
         y_peaks.append(close[peak])
@@ -291,13 +292,15 @@ def extract_data_for_plotting_numpy(close, index, final_trendline, x_peaks):
     # Calcualte x, y trendline slope:
     slope = final_trendline.slope
     intercept = final_trendline.intercept
-    y_hat = slope*np.arange(0, len(close)) + intercept
+    y_hat = slope*np.arange(0, len(index)) + intercept
 
     scatter = list(range(len(index)))
 
     for i, a in enumerate(index):
         if a == i:
             scatter.append(y_peaks[i])
+        else:
+            scatter.append(np.nan)
     
     return (scatter, y_peaks_date, y_peaks, y_hat) 
 
@@ -312,7 +315,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     trendl_plot = list(zip(df.index, y_hat))
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
-
+    
     trendl_dict = dict({
         
             "x1": f"{trendl_start_end[0][0].value//10**9}", 
@@ -329,10 +332,11 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
         json.dump(data_list, outfile)
         
     path = './trendline_results'
-
-
-    ap = fplt.make_addplot(scatter,type='scatter', markersize=70, color='blue')
-    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(df.index[0])}.png')
+    
+    df.reset_index(inplace=True)
+    
+    #ap = fplt.make_addplot(scatter,type='scatter', markersize=70, color='blue')
+    #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(df.index[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True)
     
     plt.scatter(x_peaks, y_peaks, c='green')

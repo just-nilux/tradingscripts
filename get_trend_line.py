@@ -18,10 +18,11 @@ def remove_to_close_peaks(x_peaks):
     temp = list()
 
     for i, peak in enumerate(x_peaks):
-
-        if i != 0 and peak- temp[-1] < 6:         
-            temp.pop(-1)
-        temp.append(peak)
+        if i==0: temp.append(peak)
+        elif abs(temp[-1]-peak) < 6:
+            continue
+        else: 
+            temp.append(peak)
     
     return temp 
 
@@ -29,19 +30,19 @@ def remove_to_close_peaks(x_peaks):
 def detect_peaks_guassian(df):
 
     if df.empty: return
-
+    
     df.reset_index(inplace=True)
 
     peak_list = list()
 
     dataFiltered = gaussian_filter1d(df.Close, sigma=2)
-    x_peaks = signal.argrelmax(dataFiltered)[0]
+    x_peaks = signal.argrelmax(dataFiltered)[0] #order = 5 ?
     x_peaks = remove_to_close_peaks(x_peaks)
     
-    
+    print(x_peaks)
     #if len(x_peaks) > 3 and len(x_peaks) < 10:
     peak_list.append(x_peaks)
-
+    
     if len(peak_list) > 0:
         return min(peak_list,key=len)
 
@@ -104,16 +105,11 @@ def all_combi_af_peaks(x_peaks):
 
     x_peaks_combinations_list = list()
 
-    for n in range(len(x_peaks) +1):
-
-        x_peaks_combinations_list += list(combinations(x_peaks, 3))
-
+    x_peaks_combinations_list = list(combinations(x_peaks, 3))
     x_peaks_combinations_list.sort(key=lambda tup: tup[1])
     x_peaks_combinations_list = list(dict.fromkeys(x_peaks_combinations_list))
     
-    for i, ele in enumerate(x_peaks_combinations_list):
-        if ele[0] == ele[1] == ele[2]:
-            x_peaks_combinations_list.pop(i)
+    ([x_peaks_combinations_list.pop(a) for a, i in enumerate(x_peaks_combinations_list) if i[0]==i[1]==i[2]])
     
     assert all(len(tup) == 3 for tup in x_peaks_combinations_list)
 
@@ -282,8 +278,8 @@ def main():
     #path = '//home/traderblakeq/Python/klines/ETHUSDT1D.pkl'
     #os.chdir(path)
 
-    df = pd.read_pickle('ETHUSDT15M.pkl').loc['2019-04-17':'2019-04-18']  #.loc['2022-11-09' : '2022-11-10 01:00:00']
-     
+    df = pd.read_pickle('ETHUSDT15M.pkl').loc['2022-11-09' : '2022-11-10 01:00:00']  #.loc['2022-11-09' : '2022-11-10 01:00:00']
+
     # '2019-06-24' :'2019-12-23'
 
     df.reset_index(inplace=True)

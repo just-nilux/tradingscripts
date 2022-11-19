@@ -74,7 +74,6 @@ class Trendline_test(Strategy):
 
         self.crossover = False
         self.plotted = True
-        self.highest_close = self.data.Close[-1]
 
         self.trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 'std_err'])
 
@@ -83,12 +82,11 @@ class Trendline_test(Strategy):
         
         if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
 
-        
-            i = len(self.data)
-
             self.crossover = True
             self.plotted = False
-            
+
+            i = len(self.data)
+        
             self.highest_close = len(self.data.index) - self.data.Close[i -30:i].argmax(axis=0)
     
 
@@ -96,12 +94,12 @@ class Trendline_test(Strategy):
 
             i = len(self.data)
 
-            index = self.data.index[self.highest_close:i] 
-            close = self.data.Close[self.highest_close:i]
-            open = self.data.Open[self.highest_close:i]
+            index = self.data.index[self.highest_close:i].copy()
+            close = self.data.Close[self.highest_close:i].copy()
+            open = self.data.Open[self.highest_close:i].copy()
+            s_max = np.maximum(open, close)
 
-
-            x_peaks = detect_peaks_guassian(index, close, open)
+            x_peaks = detect_peaks_guassian(index, s_max)
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(open, close, x_peaks_combinations_list)
             trendl_candidates_df = peak_regression(self.trendl_candidates_df, x_peaks_combinations_list, y_peaks_combination_list)
@@ -110,14 +108,13 @@ class Trendline_test(Strategy):
                 trendl_candidates_df = trendline_angle_degree(trendl_candidates_df)
                 candidates_after_check = check_trendl_parameters(trendl_candidates_df)
                 tup_data_for_plotting  = extract_data_for_plotting_numpy(close, index, candidates_after_check, x_peaks)
-                
-                if tup_data_for_plotting:
-                    lol = self.data.df[self.highest_close:i]
 
-                    self.plotted = plot_final_peaks_and_final_trendline(lol, tup_data_for_plotting, x_peaks)
+                if tup_data_for_plotting:
+
+                    self.plotted = plot_final_peaks_and_final_trendline(self.data.df[self.highest_close:i].copy(), tup_data_for_plotting, x_peaks)
                 
                     if self.plotted == True:
-                        print('Trendline have been found')
+                        print(f'Trendline have been found - {index[-1]}')
                         self.crossover = False
 
             # 1 - Fetch idxmax for starting point of peak search 
@@ -133,12 +130,12 @@ df = pd.read_pickle('ETHUSDT15M.pkl')
 df.drop(['Close_time', 'Volume'], axis=1, inplace=True)
 
 # Supertrend
-atr_period = 30
-atr_multiplier = 5
+atr_period = 7
+atr_multiplier = 2.5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df#.loc['2022-11 - 02:00:00':]
+df = df.loc['2022-11 - 02:00:00':]
 
 
 bt = Backtest(df, Trendline_test,

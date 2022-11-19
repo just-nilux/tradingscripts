@@ -72,7 +72,7 @@ class Trendline_test(Strategy):
         self.plotted = True
 
         self.df = self.data.df.copy()
-        self.df.drop(['High', 'Low', 'Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
+        self.df.drop(['Close_time', 'Supertrend', 'Lowerband', 'Upperband', 'Volume'], axis=1, inplace=True)
         self.trendl_candidates_df = pd.DataFrame(columns =['df_start_index', 'df_end_index', 'slope', 'intercept', 'r_value', 'p_value', 'std_err'])
 
 
@@ -82,9 +82,10 @@ class Trendline_test(Strategy):
     
         if self.plotted and crossover(self.data.Lowerband, self.data.Close): 
 
-            #self.idxmax = self.data.Close.s.tail(30).idxmax() 
-            self.idxmax = self.data.index[self.data.Close[:-30].argmax()]
 
+            i = len(self.data)
+            self.highest_close = len(self.data) - self.data.Close[i -30:i].argmax(axis=0)
+            self.idxmax = self.data.index[self.highest_close]
             
             self.crossover = True
             self.plotted = False
@@ -97,6 +98,8 @@ class Trendline_test(Strategy):
             df = self.df.loc[self.idxmax:current_id].copy()
 
             x_peaks = detect_peaks_guassian(df)
+            if x_peaks is False:
+                return
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(df, x_peaks_combinations_list)            
             trendl_candidates_df = peak_regression(self.trendl_candidates_df, x_peaks_combinations_list, y_peaks_combination_list)
@@ -108,10 +111,10 @@ class Trendline_test(Strategy):
 
                 
                 if tup_data_for_plotting:
-                    df_plot_id = current_id + timedelta(days=3)
-                    df_plot = self.data.df.loc[self.idxmax:df_plot_id]
+                    #df_plot_id = current_id + timedelta(days=3)
+                    #df_plot = self.data.df.loc[self.idxmax:df_plot_id]
                     
-                    self.plotted = plot_final_peaks_and_final_trendline(df_plot, tup_data_for_plotting, x_peaks)
+                    self.plotted = plot_final_peaks_and_final_trendline(df, tup_data_for_plotting, x_peaks)
 
                 #self.plotted = test_feed(df)
 
@@ -137,7 +140,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-11 - 02:00:00':]
+df = df.loc['2022-11-09' : '2022-11-10']
 
 bt = Backtest(df, Trendline_test,
               cash=1000_000, 

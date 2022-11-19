@@ -17,7 +17,7 @@ from scipy.stats import linregress
 
 
 
-def remove_to_close_peaks(x_peaks, too_close=8):
+def remove_to_close_peaks(x_peaks, too_close=6):
     """
     Return new array with peaks that are closer than :param too_close to
     each other removed
@@ -34,7 +34,7 @@ def remove_to_close_peaks(x_peaks, too_close=8):
     return temp 
 
 
-def detect_peaks_guassian(df, sigma=0.5):
+def detect_peaks_guassian(df, sigma=2):
     """
     Detect peaks from DataFrame.Close series using Gaussian filter.
 
@@ -44,13 +44,17 @@ def detect_peaks_guassian(df, sigma=0.5):
     if df is None: 
         return
 
-    dataFiltered = gaussian_filter1d(df.Close.to_numpy(), sigma=sigma)
-    x_peaks = signal.argrelmax(dataFiltered, order=10)[0]
-    #tuned_peaks = tune_peaks(df, x_peaks)
+    peak_list = list()
+
+    dataFiltered = gaussian_filter1d(df.Close, sigma=sigma)
+    x_peaks = signal.argrelmax(dataFiltered)[0]
+    tuned_peaks = tune_peaks(df, x_peaks)
     cleaned_peaks = remove_to_close_peaks(x_peaks)
 
-    if len(cleaned_peaks) >= 3:
-        return cleaned_peaks
+    peak_list.append(cleaned_peaks)
+
+    if len(peak_list) > 0:
+        return min(peak_list,key=len)
 
     else: 
         return False
@@ -60,7 +64,7 @@ def detect_peaks_guassian(df, sigma=0.5):
 
 def tune_peaks(df, x_peaks):
     """
-    Get the highest value of previous 10 candles / 10 future candles 
+    Get the highest value of previous x candles / x future candles 
     from peak
     """
     if x_peaks is False: 
@@ -71,8 +75,8 @@ def tune_peaks(df, x_peaks):
     df.reset_index(inplace=True)
 
     for peak in x_peaks:
-        previous = peak - 30
-        forward = peak + 30
+        previous = peak - 20
+        forward = peak + 20
 
         highest_price = df.loc[previous:forward, 'Close'].idxmax()
 
@@ -102,8 +106,10 @@ def all_combi_af_peaks(x_peaks):
     # Remove any non distinct combinations.
     ([x_peaks_combinations_list.pop(a) for a, i in enumerate(x_peaks_combinations_list) if i[0]==i[1]==i[2]])
 
-
-    return x_peaks_combinations_list
+    if len(x_peaks_combinations_list) == 0: 
+        return None
+    else:
+        return x_peaks_combinations_list
 
 
 
@@ -120,7 +126,7 @@ def fetch_y_values_peaks(df, x_peak_combinations):
     #assert all(len(tup) == 3 for tup in x_peak_combinations), \
     #        f"Some Tuples with len != 3"
 
-    
+
     # Assign Y value to the highest of Open and Close at all peaks.
     # The resulting series, s_max is a numpy array.
     s_max = np.maximum(df.Open, df.Close)
@@ -268,7 +274,6 @@ def extract_data_for_plotting(df, final_trendline, x_peaks):
     intercept = final_trendline.intercept
     y_hat = slope*df.index + intercept
 
-
     # Fill scatter row for plotting:
 
     df['scatter'] = np.nan
@@ -286,8 +291,8 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     if tup_data is None: return
 
     df_scatter, y_peaks_date, y_peaks, y_hat = tup_data[0], tup_data[1], tup_data[2], tup_data[3]
-
-    trendl_plot = list(zip(df.index, y_hat))
+    
+    trendl_plot = list(zip(df.Date, y_hat))
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
     
@@ -306,16 +311,12 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     with open('data.json', 'w') as outfile:
         json.dump(data_list, outfile)
     
-    print(df_scatter['scatter'])
-    print(len(df))
-
     path = './trendline_results'
-
+    df.set_index(df.Date, inplace=True)
     ap = fplt.make_addplot(df_scatter['scatter'],type='scatter', markersize=70, color='blue')
     fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(df.index[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True)
 
-    df.reset_index(inplace=True)
     plt.scatter(x_peaks, y_peaks, c='green')
     plt.plot(df.index, y_hat, color='blue')
     plt.plot(df.Close, '-')
@@ -335,4 +336,5 @@ def test_feed(df):
 
     else: 
         print(len(df))
+        print(df.index)
         return None
