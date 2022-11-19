@@ -94,9 +94,9 @@ class Trendline_test(Strategy):
 
             i = len(self.data)
 
-            index = self.data.index[self.highest_close:i].copy()
-            close = self.data.Close[self.highest_close:i].copy()
-            open = self.data.Open[self.highest_close:i].copy()
+            index = self.data.index.copy()#[self.highest_close:i].copy()
+            close = self.data.Close.copy()#[self.highest_close:i].copy()
+            open = self.data.Open.copy()#[self.highest_close:i].copy()
             s_max = np.maximum(open, close)
 
             x_peaks = detect_peaks_guassian(index, s_max)
@@ -110,8 +110,9 @@ class Trendline_test(Strategy):
                 tup_data_for_plotting  = extract_data_for_plotting_numpy(close, index, candidates_after_check, x_peaks)
 
                 if tup_data_for_plotting:
+                    #self.data.df[self.highest_close:i].copy()
 
-                    self.plotted = plot_final_peaks_and_final_trendline(self.data.df[self.highest_close:i].copy(), tup_data_for_plotting, x_peaks)
+                    self.plotted = plot_final_peaks_and_final_trendline(self.data.df.copy(), tup_data_for_plotting, x_peaks)
                 
                     if self.plotted == True:
                         print(f'Trendline have been found - {index[-1]}')
@@ -135,7 +136,7 @@ atr_multiplier = 2.5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-11 - 02:00:00':]
+df = df.loc['2022-11-09' : '2022-11-10 01:00:00']
 
 
 bt = Backtest(df, Trendline_test,
