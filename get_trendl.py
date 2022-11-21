@@ -299,19 +299,19 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
         
     path = './trendline_results'
     
-    #ap = fplt.make_addplot(scatter,type='scatter', markersize=70, color='blue')
-    #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(y_peaks_date[0])}.png')
+    ap = fplt.make_addplot(scatter,type='scatter', markersize=70, color='blue')
+    fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(y_peaks_date[0])}.png')
     #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True)
     
     df.reset_index(inplace=True)
 
-    #plt.scatter(x_peaks, y_peaks, c='green')
-    #plt.plot(df.index, y_hat, color='blue')
-    #plt.plot(df.Close, '-')
-    #plt.title('Trend Hunter - ETHUSDT - 1D')
-    #plt.grid()
+    plt.scatter(x_peaks, y_peaks, c='green')
+    plt.plot(df.index, y_hat, color='blue')
+    plt.plot(df.Close, '-')
+    plt.title('Trend Hunter - ETHUSDT - 1D')
+    plt.grid()
 
-    #fplt.show()
+    fplt.show()
 
 
     return True
