@@ -52,3 +52,17 @@ def Supertrend(df, atr_period, multiplier):
         'Lowerband': final_lowerband.shift(1),
         'Upperband': final_upperband.shift(1)
     }, index=df.index)
+
+
+
+
+def fetch_date_highest_price(self, n):
+            
+    indices  = np.arange(len(self.data))
+
+    sliced = self.data.Close[-abs(n):]            
+    sliced_idx = indices[-abs(n):]
+            
+    swing_high = sliced_idx[sliced.argmax(axis=0)]
+
+    return swing_high

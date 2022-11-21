@@ -311,7 +311,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks):
     plt.title('Trend Hunter - ETHUSDT - 1D')
     plt.grid()
 
-    fplt.show()
+    #fplt.show()
 
 
     return True

@@ -1,6 +1,6 @@
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
-from strategies import Supertrend
+from strategies import Supertrend, fetch_date_highest_price
 from datetime import timedelta
 from get_trendl import *
 from pathlib import Path
@@ -21,22 +21,21 @@ class Trendline_test(Strategy):
 
     def next(self):
         
-        if  self.plotted and crossover(self.data.Lowerband, self.data.Close): 
+        if  self.plotted and crossover(self.data.Lowerband, self.data.Close):
+
 
             self.crossover = True
             self.plotted = False
 
-            i1 = len(self.data)
-        
-            self.swing_high = len(self.data.index) - self.data.Close[i1 -30:i1].argmax(axis=0)
+            self.swing_high = fetch_date_highest_price(self, -20)
     
 
         if self.crossover:  
 
-            i2 = len(self.data)
-            I = self.data.index[self.swing_high:i2].copy()
-            C = self.data.Close[self.swing_high:i2].copy()
-            O = self.data.Open[self.swing_high:i2].copy()
+            i = len(self.data)
+            I = self.data.index[self.swing_high:i].copy()
+            C = self.data.Close[self.swing_high:i].copy()
+            O = self.data.Open[self.swing_high:i].copy()
             s_max = np.maximum(O, C)
 
 
@@ -54,7 +53,7 @@ class Trendline_test(Strategy):
 
                 if tup_data_for_plotting:
                     
-                    self.plotted = plot_final_peaks_and_final_trendline(self.data.df[self.swing_high:i2].copy(), tup_data_for_plotting, peak_tup)
+                    self.plotted = plot_final_peaks_and_final_trendline(self.data.df[self.swing_high:i].copy(), tup_data_for_plotting, peak_tup)
                 
                     if self.plotted == True:
                         print(f'Trendline have been found - {I[peak_tup[0]]}')
@@ -72,8 +71,8 @@ atr_multiplier = 2.5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-10']#.loc['2022-11-14':]
-
+df = df.loc['2022-11-09 04:15:00':]
+print(df)
 
 bt = Backtest(df, Trendline_test,
               cash=1000_000, 
