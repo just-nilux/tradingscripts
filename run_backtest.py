@@ -1,11 +1,11 @@
-from strategies import Supertrend
-from backtesting.lib import crossover
 from backtesting import Backtest, Strategy
+from backtesting.lib import crossover
+from strategies import Supertrend
+from datetime import timedelta
+from get_trendl import *
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from get_trendl import *
-from datetime import timedelta
 import time
 
 
