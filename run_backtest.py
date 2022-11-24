@@ -1,10 +1,11 @@
+from strategies import Supertrend, fetch_date_highest_price
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
-from strategies import Supertrend, fetch_date_highest_price
 from datetime import timedelta
 from get_trendl import *
 from pathlib import Path
 import pandas as pd
+import progressbar 
 import numpy as np
 import time
 
@@ -14,12 +15,16 @@ import time
 class Trendline_test(Strategy):
 
     def init(self):
+        
+        self.bar = progressbar.ProgressBar(max_value=len(self.data)).start()
 
         self.crossover = False
         self.plotted = True
 
 
     def next(self):
+
+        self.bar.update(len(self.data))
         
         if  self.plotted and crossover(self.data.Lowerband, self.data.Close):
 
