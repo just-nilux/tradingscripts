@@ -42,7 +42,7 @@ class Trendline_test(Strategy):
             x_peaks = detect_peaks_guassian(C, 0.5)
             if x_peaks is False:
                 return
-            #print(x_peaks)
+
             x_peaks_combinations_list = all_combi_af_peaks(x_peaks)
             y_peaks_combination_list = fetch_y_values_peaks(C, x_peaks_combinations_list)
             candidates_df, peak_tup, y_hat= peak_regression(C, x_peaks_combinations_list, y_peaks_combination_list)

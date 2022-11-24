@@ -15,7 +15,6 @@ import time
 
 
 
-
 def detect_peaks_guassian(price, sigma=0.5):
     """
     Detect peaks from DataFrame.Close series using Gaussian filter.
@@ -175,16 +174,13 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
                 x_peak_combinations[i], y_peak_combinations[i])
         negative = math.degrees(math.atan(slope))
         if r_value < -0.99 and negative < 0:
-
+          
             peak_tup = tuple(x_peak_combinations[i])
             y_hat = slope*np.arange(0, len(price)) + intercept
-            posArea_p1_p2, negArea_p1_p2, posArea_p2_p3, negArea_p2_p3 = calc_integral(peak_tup, price, y_hat)
+            aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
-            if True: #posArea_p1_p2 <20 and posArea_p2_p3 < 20 and negArea_p1_p2 < 500 and negArea_p2_p3 < 500 and negArea_p1_p2 > 100 and negArea_p2_p3 > 100:
-
-                print(r_value)
-                print(peak_tup)
-                
+            if True: #aboveArea_p1_p2 <20 and belowArea_p1_p2 < 20 and aboveArea_p2_p3 < 500 and belowArea_p2_p3 < 500 and belowArea_p1_p2 > 100 and belowArea_p2_p3 > 100:
+          
                 df.loc[i, 'start_index'] = x_peak_combinations[i][0]
                 df.loc[i, 'end_index'] = x_peak_combinations[i][2]
                 df.loc[i, 'slope'] = slope
@@ -192,10 +188,10 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
                 df.loc[i, 'r_value'] = r_value
                 df.loc[i, 'p_value'] = p_value
                 df.loc[i, 'std_err'] = std_err
-                df.loc[i, 'pos_area_p1_p2'] = posArea_p1_p2
-                df.loc[i, 'neg_area_p1_p2'] = negArea_p1_p2
-                df.loc[i, 'pos_area_p2_p3'] = posArea_p2_p3
-                df.loc[i, 'neg_area_p2_p3'] = negArea_p2_p3                
+                #df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
+                #df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
+                #df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
+                #df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3                
 
                 #assert len(trendl_candidates_df) != 0, \
                 #   f'No Trendl candidates - peak_regression'
@@ -206,54 +202,41 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
         return df, peak_tup, y_hat
 
 
-def calc_integral(peak_tup, price, y_hat):
-    """
-    Returns Integral below / above the trendline for each peak
+def calc_integrals(price, y_hat, peak_tup, details=None):
 
-    :param peak_tup
-        tuple of len 3
-    :param price
-        Array of y values price
-    :param y_hat
-        Array of y values for trendline
-    """
-    
-    price_p1_p2_slice = price[peak_tup[0]:peak_tup[1]]
-    y_hat_p1_p2_slice = y_hat[peak_tup[0]:peak_tup[1]]
-    
+    y1 =price[peak_tup[0]:peak_tup[1]+1]
+    y2 =y_hat[peak_tup[0]:peak_tup[1]+1]
+    x1 = np.arange(0, len(y1))
 
-    diff_p1_p2 = price_p1_p2_slice - y_hat_p1_p2_slice 
-    diff_p1_p2 = np.diff(diff_p1_p2) / diff_p1_p2[:-1]*100
+    y3 =price[peak_tup[1]:peak_tup[2]+1]
+    y4 =y_hat[peak_tup[1]:peak_tup[2]+1]
+    x2 = np.arange(0, len(y3))
 
+    y_list = [(x1, y1, y2), (x2, y3, y4)]
 
-    posPart_p1_p2 = np.maximum(diff_p1_p2, 0)
-    negPart_p1_p2 = np.minimum(diff_p1_p2, 0) 
-    
-    posArea_p1_p2 = float(np.trapz(posPart_p1_p2))
-    negArea_p1_p2 = float(np.trapz(negPart_p1_p2))
-    
+    res_list = list()
 
-    # ---------------------------------------------------
+    for integ in y_list:
 
+        dy = integ[1] - integ[2]
+        b0 = dy[:-1]
+        b1 = dy[1:]
+        b = np.c_[b0, b1]
+        r = np.abs(b0) / (np.abs(b0) + np.abs(b1))
+        rr = np.c_[r, 1-r]
+        dx = np.diff(integ[0])
+        h = rr * dx[:, None]
+        br = (b * rr[:, ::-1]).sum(1)
+        a = (b + br[:, None]) * h / 2
+        result = np.sum(a[a > 0]), np.sum(a[a < 0])
+        if details is not None:
+            details.update(locals())  # for debugging
 
-    price_p2_p3_slice = price[peak_tup[1]:peak_tup[2]]
-    y_hat_p2_p3_slice = y_hat[peak_tup[1]:peak_tup[2]]
-    
-    diff_p2_p3 = price_p2_p3_slice - y_hat_p2_p3_slice
-    diff_p2_p3 = np.diff(diff_p2_p3) / diff_p2_p3[:-1]*100
+        res_list.append(result[0])
+        res_list.append(result[1])
 
     
-    posPart_p2_p3 = np.maximum(diff_p2_p3, 0) 
-    negPart_p2_p3 = np.minimum(diff_p2_p3, 0) 
-
-    posArea_p2_p3 = float(np.trapz(posPart_p2_p3))
-    negArea_p2_p3 = float(np.trapz(negPart_p2_p3))
-
- 
-    # ----------------------------------------------------
-
-   
-    return posArea_p1_p2, abs(negArea_p1_p2), posArea_p2_p3, abs(negArea_p2_p3)
+    return res_list[0], res_list[1], res_list[2], res_list[3]
 
 
 
@@ -306,11 +289,11 @@ def check_trendl_parameters(candidates_df):
         return None
     else: 
         
-        print(f'Pos Area 1&2: {candidates_df.pos_area_p1_p2.iloc[0]}')
-        print(f'Neg Area 1&2: {candidates_df.neg_area_p1_p2.iloc[0]}')
+        #print(f'Pos Area 1&2: {candidates_df.pos_area_p1_p2.iloc[0]}')
+        #print(f'Neg Area 1&2: {candidates_df.neg_area_p1_p2.iloc[0]}')
 
-        print(f'Pos Area 2&3: {candidates_df.pos_area_p2_p3.iloc[0]}')
-        print(f'Neg Area 2&3: {candidates_df.neg_area_p2_p3.iloc[0]}')
+        #print(f'Pos Area 2&3: {candidates_df.pos_area_p2_p3.iloc[0]}')
+        #print(f'Neg Area 2&3: {candidates_df.neg_area_p2_p3.iloc[0]}')
 
         return candidates_df.iloc[0]
 
