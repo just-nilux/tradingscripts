@@ -2,6 +2,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import linregress
 from itertools import combinations
 import matplotlib.pyplot as plt
+from operator import itemgetter
 from pandas import DataFrame
 import mplfinance as fplt
 from scipy import signal
@@ -24,15 +25,8 @@ def detect_peaks_guassian(price, sigma=0.5):
     if price is None: 
         return
 
-    dataFiltered = gaussian_filter1d(price, sigma=sigma)
-    x_peaks = signal.argrelmax(dataFiltered)[0]
-
-    if len(x_peaks) < 3:
-        return False
-
-    #tuned_peaks = tune_peaks(price, x_peaks)
-    #cleaned_peaks = remove_too_close_peaks(tuned_peaks)
-
+    #dataFiltered = gaussian_filter1d(price, sigma=sigma)
+    x_peaks = signal.argrelmax(price, order=2)[0]
 
     if len(x_peaks) >= 3:
         return x_peaks
@@ -42,67 +36,8 @@ def detect_peaks_guassian(price, sigma=0.5):
 
 
 
-def tune_peaks(close, x_peaks):
-    """
-    Get the highest value of previous 30 candles / 30 future candles 
-    from peak
-    """
 
-    if x_peaks is False: 
-        return
-
-
-    x_peaks_ = list()
-    indices  = np.arange(len(close))
-    close = np.array(close)
-
-    for peak in x_peaks:
-
-        previous = peak - 10
-        forward = peak + 10
-
-        if previous <= 0:
-            sliced = close[0:forward]            
-            sliced_idx = indices[0:forward]
-          
-            argmax = sliced_idx[sliced.argmax()]
-
-        elif forward > len(close):
-            sliced = close[previous:]
-            sliced_idx = indices[previous:]
-           
-            argmax = sliced_idx[sliced.argmax()]
-
-        else:
-            sliced = close[previous:forward]
-            sliced_idx = indices[previous:forward]
-   
-            argmax = sliced_idx[sliced.argmax()]
-        
-    
-        x_peaks_.append(argmax)
-
-
-    return x_peaks_
-
-
-
-def remove_too_close_peaks(x_peaks, too_close=6):
-
-    temp = list()
-
-    for i, peak in enumerate(x_peaks):
-        if i==0: temp.append(peak)
-        elif abs(temp[-1]-peak) < too_close:
-            continue
-        else: 
-            temp.append(peak)
-    
-    return temp
-
-
-
-def all_combi_af_peaks(x_peaks):
+def all_combi_af_peaks(x_peaks, last_comb):
     """
     Return list of all distinct combinations of length of 3 of :param 
     x_peaks.
@@ -111,23 +46,18 @@ def all_combi_af_peaks(x_peaks):
     if x_peaks is False: 
         return
 
-    x_peaks_combinations_list = list()
-    
-    x_peaks_combinations_list += list(combinations(x_peaks, 3))
 
-    x_peaks_combinations_list.sort(key=lambda tup: tup[1])
-    x_peaks_combinations_list = list(dict.fromkeys(
-            x_peaks_combinations_list))
-    
-    # Remove any non distinct combinations
-    ([x_peaks_combinations_list.pop(a) for a, i in enumerate(x_peaks_combinations_list) if i[0]==i[1]==i[2]])
+    x_peaks_combination = list()
+                
+    x_peaks_combination += set(list(combinations(x_peaks, 3))).difference(last_comb)
 
-    #assert all(len(tup) == 3 for tup in x_peaks_combinations_list), \
-    #        f"Some Tuples with != 3"
+    last_comb += x_peaks_combination
 
-       #------------------------------------
 
-    return x_peaks_combinations_list
+    if len(x_peaks_combination)>0:
+        return x_peaks_combination
+    else: 
+        return
 
 
 
@@ -139,14 +69,11 @@ def fetch_y_values_peaks(price , x_peak_combinations):
     """
     if x_peak_combinations is None: 
         return
-
-    #assert all(len(tup) == 3 for tup in x_peak_combinations), \
-    #        f"Some Tuples with len != 3"
     
     # Extract series of peaks.
     X = zip(*x_peak_combinations)
     X1, X2, X3 = (list(x) for x in X)
-    
+
     # Bundle up values as tuples of len 3.
     y_peak_combinations = [tuple(y) for y in
             zip(price[X1], price[X2], price[X3])] 
@@ -163,38 +90,43 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
     :param x_peak_combinations
         List of peak value combinations (tuples) of len 3
     """
+    if x_peak_combinations is None:
+        return None, None, None
+    
 
-    df = DataFrame(columns =['start_index', 'end_index' ,'slope', 'intercept', 'r_value', 'p_value', 'std_err'])
+    df = DataFrame()
 
-    if x_peak_combinations is None: 
-        return pd.DataFrame()
 
     for i in range(len(x_peak_combinations)):
         slope, intercept, r_value, p_value, std_err  = linregress(
-                x_peak_combinations[i], y_peak_combinations[i])
-        negative = math.degrees(math.atan(slope))
-        if r_value < -0.99 and negative < 0:
+                x_peak_combinations[i], y_peak_combinations[i], alternative='less')
+
+        angle = math.degrees(math.atan(slope))
+        
+        if r_value < -0.995:
           
             peak_tup = tuple(x_peak_combinations[i])
             y_hat = slope*np.arange(0, len(price)) + intercept
             aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
-            if True: #aboveArea_p1_p2 <20 and belowArea_p1_p2 < 20 and aboveArea_p2_p3 < 500 and belowArea_p2_p3 < 500 and belowArea_p1_p2 > 100 and belowArea_p2_p3 > 100:
-          
+            if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) <= 1500 and abs(belowArea_p2_p3) <= 1500 and abs(belowArea_p1_p2) > 300 and abs(belowArea_p2_p3) > 300:
+
                 df.loc[i, 'start_index'] = x_peak_combinations[i][0]
                 df.loc[i, 'end_index'] = x_peak_combinations[i][2]
+                df.loc[i, 'length'] = x_peak_combinations[i][2] - x_peak_combinations[i][0]
                 df.loc[i, 'slope'] = slope
                 df.loc[i, 'intercept'] = intercept
                 df.loc[i, 'r_value'] = r_value
                 df.loc[i, 'p_value'] = p_value
                 df.loc[i, 'std_err'] = std_err
-                #df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
-                #df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
-                #df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
-                #df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3                
+                df.loc[i, 'angle'] = angle
+                df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
+                df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
+                df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
+                df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3
+              
 
-                #assert len(trendl_candidates_df) != 0, \
-                #   f'No Trendl candidates - peak_regression'
+                return df, peak_tup, y_hat
     
     if df.empty:
         return None, None, None
@@ -229,36 +161,16 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
         br = (b * rr[:, ::-1]).sum(1)
         a = (b + br[:, None]) * h / 2
         result = np.sum(a[a > 0]), np.sum(a[a < 0])
+
         if details is not None:
             details.update(locals())  # for debugging
 
         res_list.append(result[0])
         res_list.append(result[1])
 
-    
+
     return res_list[0], res_list[1], res_list[2], res_list[3]
 
-
-
-def trendline_angle_degree(candidates_df):
-    if candidates_df is None: 
-        return
-
-    assert len(candidates_df) != 0, \
-            f'No trendl candadates - (trendline_angle_degree)'
-
-    candidates_df['angle_degree'] = candidates_df \
-            .slope.apply(lambda x: math.degrees(math.atan(x)))
-
-    if candidates_df.empty:
-        return None
-    else: 
-        return candidates_df
-
-
-
-def area_under_trendl():
-    pass
 
 
 
@@ -299,11 +211,12 @@ def check_trendl_parameters(candidates_df):
 
 
 
-def extract_data_for_plotting(close, index, final_trendline, x_peaks):
+def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, length_list, y_peak_list):
     if final_trendline is None: return
 
     assert len(final_trendline) != 0 , f'No trendl candidates - (extract_data_for_plotting)'
 
+    
     # Save x,y peaks to list:
     y_peaks_date = list()
     y_peaks = list()
@@ -313,41 +226,75 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks):
         y_peaks.append(close[peak])
 
 
+    length_list.append(int(final_trendline.length))
+    y_peak_list.append(max(y_peaks))
+    print(f'max length: {max(length_list)}')
+    print(f'min y price: {min(y_peak_list)}')
+    print(f'max y price:{max(y_peak_list)}')
+
+
+
     scatter = np.full(len(index), fill_value=np.nan)
+    scatter_act_peak = np.full(len(index), fill_value=np.nan)
+
+    for peak in peak_tup:
+        scatter_act_peak[peak] = close[peak]
+    
 
     for peak in x_peaks:
         scatter[peak] = close[peak]
 
 
-    return (scatter, y_peaks_date, y_peaks) 
+    return (scatter, y_peaks_date, y_peaks, scatter_act_peak) 
 
 
 
-def plot_final_peaks_and_final_trendline(df, tup_data, x_peaks, y_hat, timestamp):
+def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tup, candidates_df, fit_plot=0):
 
     if tup_data is None: return
     
-    scatter, y_peaks_date, y_peaks = tup_data[0], tup_data[1], tup_data[2]
+
+    scatter, y_peaks_date, y_peaks, actual_peaks = tup_data[0], tup_data[1], tup_data[2], tup_data[3]
+
+    df_slice = df[peak_tup[0] : peak_tup[2]+1]
+    y_hat_slice = y_hat[peak_tup[0] : peak_tup[2]+1]
+    scatter_slice = scatter[peak_tup[0] : peak_tup[2]+1]
+    actual_peaks_slice = actual_peaks[peak_tup[0] : peak_tup[2]+1]
+    
+
+    if fit_plot !=0:
+
+        ext_len = fit_plot - int(candidates_df.length)
+
+        df_slice = df[ peak_tup[0] : peak_tup[2] + ext_len + 1].copy()
+
+        y_hat_slice = np.pad(y_hat_slice, (0,ext_len), 'constant', constant_values=np.nan)
+        scatter_slice = np.pad(scatter_slice, (0,ext_len), 'constant', constant_values=np.nan)
+        actual_peaks_slice = np.pad(actual_peaks_slice, (0,ext_len), 'constant', constant_values=np.nan) 
 
     
-    trendl_plot = list(zip(df.index, y_hat))
+    trendl_plot = list(zip(df_slice.index, y_hat_slice))
    
     trendl_start_end = list([trendl_plot[0], trendl_plot[-1]])
-    
-            
+
     path = './trendline_results'
     
-    ap = fplt.make_addplot(scatter,type='scatter', markersize=70, color='blue')
-    fig, axlist = fplt.plot(df, figratio=(16,9), type='line', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
-    #fig, axlist = fplt.plot(df, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=ap,  ylabel='Price ($)', returnfig=True)
-    
-    df.reset_index(inplace=True)
+    subplt = list()
+    subplt.append(fplt.make_addplot(scatter_slice, type='scatter', markersize=70, color='red'))
+    subplt.append(fplt.make_addplot(actual_peaks_slice, type='scatter', markersize=70, color='green'))
 
-    plt.scatter(x_peaks, y_peaks, c='green')
-    plt.plot(df.index, y_hat, color='blue')
-    plt.plot(df.Close, '-')
-    plt.title('Trend Hunter - ETHUSDT - 1D')
-    plt.grid()
+    #plot_string = f'length: {str(candidates_df.length)}, angle: {str(candidates_df.angle)}, area above t1t2: {str(round(candidates_df.aboveArea_p1_p2,1))}, area below t1t2: {str(round(candidates_df.belowArea_p1_p2, 1))}, area above t2t3: {str(round(candidates_df.aboveArea_p2_p3,1))}, Area below t2t3: {str(round(candidates_df.belowArea_p2_p3,1))} '
+
+    fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
+    #fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', ylim=(1100.0, 1650.0), alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
+
+    #df.reset_index(inplace=True)
+
+    #plt.scatter(x_peaks, y_peaks, c='green')
+    #plt.plot(df.index, y_hat, color='blue')
+    #plt.plot(df.Close, '-')
+    #plt.title('Trend Hunter - ETHUSDT - 1D')
+    #plt.grid()
 
     #fplt.show()
 
