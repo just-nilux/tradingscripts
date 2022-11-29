@@ -85,7 +85,7 @@ def fetch_y_values_peaks(price , x_peak_combinations):
 
 
 
-def peak_regression(price, x_peak_combinations, y_peak_combinations):
+def peak_regression(price, x_peak_combinations, y_peak_combinations, df):
     """
     :param x_peak_combinations
         List of peak index combinations (tuples) of len 3
@@ -95,9 +95,6 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
     if x_peak_combinations is None:
         return None, None, None
     
-
-    df = DataFrame()
-
 
     for i in range(len(x_peak_combinations)):
         slope, intercept, r_value, p_value, std_err  = linregress(
