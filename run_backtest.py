@@ -32,11 +32,12 @@ class Trendline_test(Strategy):
 
         self.bar.update(len(self.data))
 
-        if self.crossover:
 
-            if crossover(self.data.Close, self.data.Upperband):
+        #if self.crossover:
 
-                self.run = False
+         #   if crossover(self.data.Close, self.data.Upperband):
+                #self.plotted = True
+                #self.run = False
 
 
         
@@ -56,6 +57,7 @@ class Trendline_test(Strategy):
             C = self.data.Close[self.swing_high:i].copy()
             O = self.data.Open[self.swing_high:i].copy()
 
+
             x_peaks = detect_peaks_guassian(C, 0.1)
             if x_peaks is False:
                 return
@@ -63,16 +65,17 @@ class Trendline_test(Strategy):
             x_peaks_combinations = all_combi_af_peaks(x_peaks, self.last_comb)
             y_peaks_combinations = fetch_y_values_peaks(C, x_peaks_combinations)
             candidates_df, peak_tup, y_hat= peak_regression(C, x_peaks_combinations, y_peaks_combinations, self.tren_df)
-            if not candidates_df is None:          
+            if candidates_df is None:
+                return          
                 
-                tup_data_for_plotting  = extract_data_for_plotting(C, I, candidates_df, x_peaks, peak_tup, self.length, self.y_price)
-                self.plotted = plot_final_peaks_and_final_trendline(self.df[self.swing_high:i+200].copy(), tup_data_for_plotting, y_hat, I[peak_tup[0]], peak_tup, candidates_df, fit_plot=0)
+            tup_data_for_plotting  = extract_data_for_plotting(C, I, candidates_df, x_peaks, peak_tup, self.length, self.y_price)
+            self.plotted = plot_final_peaks_and_final_trendline(self.df[self.swing_high:i+200].copy(), tup_data_for_plotting, y_hat, I[peak_tup[0]], peak_tup, candidates_df, fit_plot=0)
                 
-                if self.plotted:
-                    print(f'Trendline have been found - {I[peak_tup[0]]}')
-                    self.crossover = False
-                    self.tren_df = self.tren_df.head(0)
-                    self.last_comb.clear()
+            if self.plotted:
+                print(f'Trendline have been found - {I[peak_tup[0]]}')
+                self.crossover = False
+                self.tren_df = self.tren_df.head(0)
+                self.last_comb.clear()
 
 
 
