@@ -103,8 +103,7 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
         slope, intercept, r_value, p_value, std_err  = linregress(
                 x_peak_combinations[i], y_peak_combinations[i], alternative='less')
 
-        angle = math.degrees(math.atan(slope))
-        
+                
         if r_value < -0.995:
           
             peak_tup = tuple(x_peak_combinations[i])
@@ -121,7 +120,7 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
                 df.loc[i, 'r_value'] = r_value
                 df.loc[i, 'p_value'] = p_value
                 df.loc[i, 'std_err'] = std_err
-                df.loc[i, 'angle'] = angle
+                df.loc[i, 'angle'] = math.degrees(math.atan(slope))
                 df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
                 df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
                 df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
