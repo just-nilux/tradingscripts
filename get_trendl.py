@@ -58,9 +58,10 @@ def all_combi_af_peaks(x_peaks, last_comb):
         return x_peaks_combination
     else: 
         return
+    
 
 
-
+    
 def fetch_y_values_peaks(price , x_peak_combinations):
     """
     Return max(df.Close, df.Open) at each peak in peak combinations list.
@@ -80,6 +81,7 @@ def fetch_y_values_peaks(price , x_peak_combinations):
 
 
     return y_peak_combinations
+
 
 
 
@@ -132,6 +134,8 @@ def peak_regression(price, x_peak_combinations, y_peak_combinations):
         return None, None, None
     else:
         return df, peak_tup, y_hat
+    
+
 
 
 def calc_integrals(price, y_hat, peak_tup, details=None):
@@ -171,43 +175,6 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
 
     return res_list[0], res_list[1], res_list[2], res_list[3]
 
-
-
-
-def check_trendl_parameters(candidates_df):
-
-    if candidates_df is None: return
-
-    #candidates_df.drop(candidates_df[
-    #        candidates_df.angle_degree > -5].index, inplace=True)
-    
-    candidates_df.drop(candidates_df[
-            candidates_df.angle_degree > 0].index, inplace=True)
-    
-    #candidates_df.drop(candidates_df[
-    #    candidates_df.r_value > -0.999].index, inplace=True)
-
-    #candidates_df.drop(candidates_df[
-    #    candidates_df.pos_area > 10].index, inplace=True)
-
-    #candidates_df.drop(candidates_df[
-    #    candidates_df.neg_area > 500].index, inplace=True)
-
-
-    candidates_df.sort_values('r_value', inplace=True)
-
-
-    if candidates_df.empty:
-        return None
-    else: 
-        
-        #print(f'Pos Area 1&2: {candidates_df.pos_area_p1_p2.iloc[0]}')
-        #print(f'Neg Area 1&2: {candidates_df.neg_area_p1_p2.iloc[0]}')
-
-        #print(f'Pos Area 2&3: {candidates_df.pos_area_p2_p3.iloc[0]}')
-        #print(f'Neg Area 2&3: {candidates_df.neg_area_p2_p3.iloc[0]}')
-
-        return candidates_df.iloc[0]
 
 
 
