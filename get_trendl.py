@@ -96,11 +96,10 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         return None, None, None
     
 
-    for i in range(len(x_peak_comb)):
-        slope, intercept, r_value, p_value, std_err  = linregress(
-                x_peak_comb[i], y_peak_comb[i], alternative='less')
+    for i, (x, y) in enumerate(zip(x_peak_comb, y_peak_comb)):
+        slope, intercept, r_value, p_value, std_err  = linregress(x, y, alternative='less')
 
-                
+        
         if r_value < -0.995:
           
             peak_tup = tuple(x_peak_comb[i])
