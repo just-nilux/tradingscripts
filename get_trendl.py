@@ -47,71 +47,71 @@ def all_combi_af_peaks(x_peaks, last_comb):
         return
 
 
-    x_peaks_combination = list()
+    x_peaks_comb = list()
                 
-    x_peaks_combination += set(list(combinations(x_peaks, 3))).difference(last_comb)
+    x_peaks_comb += set(list(combinations(x_peaks, 3))).difference(last_comb)
 
-    last_comb += x_peaks_combination
+    last_comb += x_peaks_comb
 
 
-    if len(x_peaks_combination)>0:
-        return x_peaks_combination
+    if len(x_peaks_comb)>0:
+        return x_peaks_comb
     else: 
         return
     
 
 
     
-def fetch_y_values_peaks(price , x_peak_combinations):
+def fetch_y_values_peaks(price , x_peak_comb):
     """
     Return max(df.Close, df.Open) at each peak in peak combinations list.
     :params x_peak_combinations
         List of combinations of length 3.
     """
-    if x_peak_combinations is None: 
+    if x_peak_comb is None: 
         return
     
     # Extract series of peaks.
-    X = zip(*x_peak_combinations)
+    X = zip(*x_peak_comb)
     X1, X2, X3 = (list(x) for x in X)
 
     # Bundle up values as tuples of len 3.
-    y_peak_combinations = [tuple(y) for y in
+    y_peak_comb = [tuple(y) for y in
             zip(price[X1], price[X2], price[X3])] 
 
 
-    return y_peak_combinations
+    return y_peak_comb
 
 
 
 
-def peak_regression(price, x_peak_combinations, y_peak_combinations, df):
+def peak_regression(price, x_peak_comb, y_peak_comb, df):
     """
     :param x_peak_combinations
         List of peak index combinations (tuples) of len 3
     :param x_peak_combinations
         List of peak value combinations (tuples) of len 3
     """
-    if x_peak_combinations is None:
+    if x_peak_comb is None:
         return None, None, None
     
 
-    for i in range(len(x_peak_combinations)):
+    for i in range(len(x_peak_comb)):
         slope, intercept, r_value, p_value, std_err  = linregress(
-                x_peak_combinations[i], y_peak_combinations[i], alternative='less')
+                x_peak_comb[i], y_peak_comb[i], alternative='less')
 
                 
         if r_value < -0.995:
           
-            peak_tup = tuple(x_peak_combinations[i])
+            peak_tup = tuple(x_peak_comb[i])
             y_hat = slope*np.arange(0, len(price)) + intercept
             aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
             if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) <= 1500 and abs(belowArea_p2_p3) <= 1500 and abs(belowArea_p1_p2) > 300 and abs(belowArea_p2_p3) > 300:
 
-                df.loc[i, 'start_index'] = x_peak_combinations[i][0]
-                df.loc[i, 'end_index'] = x_peak_combinations[i][2]
-                df.loc[i, 'length'] = x_peak_combinations[i][2] - x_peak_combinations[i][0]
+                df.loc[i, 'start_index'] = x_peak_comb[i][0]
+                df.loc[i, 'end_index'] = x_peak_comb[i][2]
+                df.loc[i, 'length'] = x_peak_comb[i][2] - x_peak_comb[i][0]
                 df.loc[i, 'slope'] = slope
                 df.loc[i, 'intercept'] = intercept
                 df.loc[i, 'r_value'] = r_value
