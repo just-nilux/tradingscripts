@@ -16,7 +16,7 @@ import time
 
 
 
-def detect_peaks_guassian(price, sigma=0.5):
+def detect_peaks_guassian(price, sigma=0.2):
     """
     Detect peaks from DataFrame.Close series using Gaussian filter.
     :param sigma Standard deviation of Gaussian filter.
@@ -25,8 +25,8 @@ def detect_peaks_guassian(price, sigma=0.5):
     if price is None: 
         return
 
-    #dataFiltered = gaussian_filter1d(price, sigma=sigma)
-    x_peaks = signal.argrelmax(price, order=2)[0]
+    dataFiltered = gaussian_filter1d(price, sigma=sigma)
+    x_peaks = signal.argrelmax(dataFiltered, order=2)[0]
 
     if len(x_peaks) >= 3:
         return x_peaks
@@ -218,17 +218,17 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
 
     scatter, y_peaks_date, y_peaks, actual_peaks = tup_data[0], tup_data[1], tup_data[2], tup_data[3]
 
-    df_slice = df[peak_tup[0] : peak_tup[2]+1]
-    y_hat_slice = y_hat[peak_tup[0] : peak_tup[2]+1]
-    scatter_slice = scatter[peak_tup[0] : peak_tup[2]+1]
-    actual_peaks_slice = actual_peaks[peak_tup[0] : peak_tup[2]+1]
+    df_slice = df[peak_tup[0] : peak_tup[-1]+1]
+    y_hat_slice = y_hat[peak_tup[0] : peak_tup[-1]+1]
+    scatter_slice = scatter[peak_tup[0] : peak_tup[-1]+1]
+    actual_peaks_slice = actual_peaks[peak_tup[0] : peak_tup[-1]+1]
     
 
     if fit_plot !=0:
 
         ext_len = fit_plot - int(candidates_df.length)
 
-        df_slice = df[ peak_tup[0] : peak_tup[2] + ext_len + 1].copy()
+        df_slice = df[ peak_tup[0] : peak_tup[-1] + ext_len + 1].copy()
 
         y_hat_slice = np.pad(y_hat_slice, (0,ext_len), 'constant', constant_values=np.nan)
         scatter_slice = np.pad(scatter_slice, (0,ext_len), 'constant', constant_values=np.nan)
