@@ -1,3 +1,6 @@
 __pycache__
 *.png
 node_modules
+trendlines_testdata.json
+data.json
+trendline_results
