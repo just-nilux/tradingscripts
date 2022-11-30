@@ -222,18 +222,17 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     y_hat_slice = y_hat[peak_tup[0] : peak_tup[-1]+1]
     scatter_slice = scatter[peak_tup[0] : peak_tup[-1]+1]
     actual_peaks_slice = actual_peaks[peak_tup[0] : peak_tup[-1]+1]
-    
+
 
     if fit_plot !=0:
+        # fit all plots to same x-axis lenght, for integral area's to be interpret equal visually.
 
         ext_len = fit_plot - int(candidates_df.length)
 
-        df_slice = df[ peak_tup[0] : peak_tup[-1] + ext_len + 1].copy()
-
+        df_slice =  df[ peak_tup[0] : peak_tup[-1] + ext_len + 1].copy()
         y_hat_slice = np.pad(y_hat_slice, (0,ext_len), 'constant', constant_values=np.nan)
         scatter_slice = np.pad(scatter_slice, (0,ext_len), 'constant', constant_values=np.nan)
         actual_peaks_slice = np.pad(actual_peaks_slice, (0,ext_len), 'constant', constant_values=np.nan) 
-
     
     trendl_plot = list(zip(df_slice.index, y_hat_slice))
    
@@ -262,7 +261,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
 
     to_json(trendl_start_end)
 
-    
+
     return True, df.index[peak_tup[-1]]
 
 
