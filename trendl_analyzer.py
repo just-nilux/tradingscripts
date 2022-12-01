@@ -45,7 +45,7 @@ def peak_regression(price, x_touches, y_touches):
     aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
     print()
-    print(f'length: {x_touches[-1] - x_touches[0]}')
+    print(f'Trendline length: {x_touches[-1] - x_touches[0]}')
     print(f'angle degree: {math.degrees(math.atan(slope))}')
     print(f'r_val: {r_value}')
     print()
@@ -105,7 +105,7 @@ def plotter(df, y_hat, x_touches, y_touches):
     plt.scatter(x_touches, y_touches, c='green')
     plt.plot(df.index, y_hat, color='blue')
     plt.plot(df.Close, '-')
-    plt.title('Trend Hunter - ETHUSDT - 1D')
+    plt.title('Trend Analyzer')
     plt.grid()
 
     plt.show()
