@@ -74,7 +74,7 @@ class Trendline_test(Strategy):
             
             self.tren_df = self.tren_df.head(0)
             self.last_comb.clear()
-            print(f'Trendline have been found - {I[peak_tup[0]]}')
+            #print(f'Trendline have been found - {I[peak_tup[0]]}')
 
 
 
@@ -98,7 +98,7 @@ print(df)
 
 # Split up df into chunks
 n = int(len(df)/12)
-list_df = [df[i:i+n] for i in range(0,df.shape[0],n)]
+list_df = [df[i:i+n].copy() for i in range(0,df.shape[0],n)]
 
 
 # Delete original dataframe in memory
