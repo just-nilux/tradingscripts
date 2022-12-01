@@ -71,7 +71,7 @@ class Trendline_test(Strategy):
             
             self.tren_df = self.tren_df.head(0)
             self.last_comb.clear()
-            print(f'Trendline have been found - {I[peak_tup[0]]}')
+            #print(f'Trendline have been found - {I[peak_tup[0]]}')
 
 
 
@@ -89,12 +89,8 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-10-31':'2022-11-22'] #['2022-10-09':]
+df #= df.loc['2022-10-31':'2022-11-22'] #['2022-10-09':]
 print(df)
-
-
-#n = int(len(df)/4)
-#list_df = [df[i:i+n] for i in range(0,df.shape[0],n)]
 
 
 

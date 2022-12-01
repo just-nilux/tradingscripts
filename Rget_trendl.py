@@ -2,10 +2,8 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import linregress
 from itertools import combinations
 import matplotlib.pyplot as plt
-from operator import itemgetter
-from pandas import DataFrame
+from scipy.signal import argrelmax
 import mplfinance as fplt
-from scipy import signal
 import pandas as pd
 import numpy as np
 import math
@@ -26,7 +24,7 @@ def detect_peaks_guassian(price, sigma=0.2):
         return
 
     #dataFiltered = gaussian_filter1d(price, sigma=sigma)
-    x_peaks = signal.argrelmax(price, order=2)[0]
+    x_peaks = argrelmax(price)[0] #order=2
 
     if len(x_peaks) >= 3:
         return x_peaks
@@ -106,7 +104,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
             y_hat = slope*np.arange(0, len(price)) + intercept
             aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
-            if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) <= 1500 and abs(belowArea_p2_p3) <= 1500 and abs(belowArea_p1_p2) > 300 and abs(belowArea_p2_p3) > 300:
+            if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) <= 1500 and abs(belowArea_p2_p3) <= 1500 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100:
 
                 df.loc[i, 'start_index'] = x_peak_comb[i][0]
                 df.loc[i, 'end_index'] = x_peak_comb[i][-1]
@@ -190,9 +188,9 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, 
 
     length_list.append(int(final_trendline.length))
     y_peak_list.append(max(y_peaks))
-    print(f'max length: {max(length_list)}')
-    print(f'min y price: {min(y_peak_list)}')
-    print(f'max y price:{max(y_peak_list)}')
+    #print(f'max length: {max(length_list)}')
+    #print(f'min y price: {min(y_peak_list)}')
+    #print(f'max y price:{max(y_peak_list)}')
 
 
 
@@ -201,7 +199,7 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, 
 
     for peak in peak_tup:
         scatter_act_peak[peak] = close[peak]
-    
+
 
     for peak in x_peaks:
         scatter[peak] = close[peak]
@@ -244,10 +242,16 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     subplt.append(fplt.make_addplot(scatter_slice, type='scatter', markersize=30, color='red'))
     subplt.append(fplt.make_addplot(actual_peaks_slice, type='scatter', markersize=60, color='green'))
 
-    #plot_string = f'length: {str(candidates_df.length)}, angle: {str(candidates_df.angle)}, area above t1t2: {str(round(candidates_df.aboveArea_p1_p2,1))}, area below t1t2: {str(round(candidates_df.belowArea_p1_p2, 1))}, area above t2t3: {str(round(candidates_df.aboveArea_p2_p3,1))}, Area below t2t3: {str(round(candidates_df.belowArea_p2_p3,1))} '
 
     fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
     #fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', ylim=(1100.0, 1650.0), alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
+
+    
+    #trendl_details = f'length: {candidates_df.length}, angle: {candidates_df.angle}, area above t1t2: {round(candidates_df.aboveArea_p1_p2,1)}, area below t1t2: {round(candidates_df.belowArea_p1_p2, 1)}, area above t2t3: {round(candidates_df.aboveArea_p2_p3,1)}, Area below t2t3: {round(candidates_df.belowArea_p2_p3,1)}'
+
+    #write_txt = open(f'{path}/{str(timestamp)}.txt',"w")
+    #write_txt.write(trendl_details)
+
 
     #df.reset_index(inplace=True)
 
