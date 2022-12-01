@@ -7,7 +7,9 @@ from pathlib import Path
 import pandas as pd
 import progressbar 
 import numpy as np
+import psutil
 import time
+import gc
 
 
 
@@ -93,9 +95,16 @@ df = df.join(supertrend)
 print(df)
 
 
-n = int(len(df)/12)
 
+# Split up df into chunks
+n = int(len(df)/12)
 list_df = [df[i:i+n] for i in range(0,df.shape[0],n)]
+
+
+# Delete original dataframe in memory
+del [df]
+gc.collect()
+
 
 def main(df):
 
@@ -108,6 +117,9 @@ def main(df):
     ).run()
 
 
-with ProcessPoolExecutor(max_workers=12) as executor:
+num_procs  = psutil.cpu_count(logical=False)
+
+        
+with ProcessPoolExecutor(max_workers=num_procs) as executor:
         executor.map(main, list_df)
 
