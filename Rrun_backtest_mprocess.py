@@ -102,7 +102,7 @@ list_df = [df[i:i+n] for i in range(0,df.shape[0],n)]
 
 
 # Delete original dataframe in memory
-del [df]
+del df
 gc.collect()
 
 
