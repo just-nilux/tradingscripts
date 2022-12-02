@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import math
 import json
-import time
+import time 
 
 
 
@@ -120,7 +120,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
                 df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
                 df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3
               
-
+                
                 return df, peak_tup, y_hat
     
     if df.empty:
@@ -133,27 +133,24 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
 
 def calc_integrals(price, y_hat, peak_tup, details=None):
 
-    y1 =price[peak_tup[0]:peak_tup[1]+1]
-    y2 =y_hat[peak_tup[0]:peak_tup[1]+1]
-    x1 = np.arange(0, len(y1))
-
-    y3 =price[peak_tup[1]:peak_tup[-1]+1]
-    y4 =y_hat[peak_tup[1]:peak_tup[-1]+1]
-    x2 = np.arange(0, len(y3))
-
-    y_list = [(x1, y1, y2), (x2, y3, y4)]
+    
+    slice_tup = ((0,1), (1,-1))
 
     res_list = list()
 
-    for integ in y_list:
+    for tup in slice_tup:
 
-        dy = integ[1] - integ[2]
+        y1 =price[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
+        y2 =y_hat[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
+        x = np.arange(0, len(y1))
+
+        dy = y1 - y2
         b0 = dy[:-1]
         b1 = dy[1:]
         b = np.c_[b0, b1]
         r = np.abs(b0) / (np.abs(b0) + np.abs(b1))
         rr = np.c_[r, 1-r]
-        dx = np.diff(integ[0])
+        dx = np.diff(x)
         h = rr * dx[:, None]
         br = (b * rr[:, ::-1]).sum(1)
         a = (b + br[:, None]) * h / 2
@@ -166,7 +163,7 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
         res_list.append(result[1])
 
 
-    return res_list[0], res_list[1], res_list[2], res_list[3]
+    return res_list[0], res_list[1], res_list[2], res_list[3]   
 
 
 
