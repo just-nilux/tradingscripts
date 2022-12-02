@@ -2,7 +2,7 @@ from strategies import Supertrend, fetch_date_highest_price
 from concurrent.futures import ProcessPoolExecutor
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
-from Rget_trendl import *
+from Rget_trendl_3T import *
 from pathlib import Path
 import pandas as pd
 import progressbar 
@@ -60,9 +60,9 @@ class Trendline_test(Strategy):
             if x_peaks is False:
                 return
 
-            x_peaks_combinations = all_combi_af_peaks(x_peaks, self.last_comb)
-            y_peaks_combinations = fetch_y_values_peaks(C, x_peaks_combinations)
-            candidates_df, peak_tup, y_hat= peak_regression(C, x_peaks_combinations, y_peaks_combinations, self.tren_df)
+            x_peaks_comb = all_combi_af_peaks(x_peaks, self.last_comb)
+            y_peaks_comb = fetch_y_values_peaks(C, x_peaks_comb)
+            candidates_df, peak_tup, y_hat= peak_regression(C, x_peaks_comb, y_peaks_comb, self.tren_df)
             if candidates_df is None:
                 return          
                 
