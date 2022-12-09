@@ -20,6 +20,7 @@ class Trendline_test(Strategy):
         self.last_comb = list()
         self.length = list()
         self.y_price = list()
+        self.tmp_peak_arr = tuple()
         self.tren_df = pd.DataFrame()
         self.df = self.data.df.copy()
         self.prev_plt_idx = None
@@ -53,7 +54,7 @@ class Trendline_test(Strategy):
             O = self.data.Open[self.swing_high:i].copy()
 
 
-            x_peaks = detect_peaks_guassian(C, 0.1)
+            x_peaks = detect_peaks_guassian(C, self.tmp_peak_arr,0.1)
             if x_peaks is False:
                 return
 
@@ -71,6 +72,7 @@ class Trendline_test(Strategy):
             
             self.tren_df = self.tren_df.head(0)
             self.last_comb.clear()
+            self.tmp_peak_arr = tuple()
             print(f'Trendline have been found - {I[peak_tup[0]]}')
 
 
@@ -89,7 +91,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-10-31':'2022-11-22'] #['2022-10-09':]
+df = df.loc['2022-11':]#['2022-10-31':'2022-11-22'] #['2022-10-09':]
 print(df)
 
 
