@@ -78,7 +78,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         y_hat = slope*np.arange(0, len(price)) + intercept
         aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
-        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) <= 1500 and abs(belowArea_p2_p3) <= 1500 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100:
+        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) < 700 and abs(belowArea_p2_p3) < 700 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100:
 
             df.loc[i, 'start_index'] = x_peak_comb[i][0]
             df.loc[i, 'end_index'] = x_peak_comb[i][-1]
@@ -93,7 +93,8 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
             df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
             df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
             df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3
-              
+            print(f'belowA - p1: {abs(belowArea_p1_p2)}')
+            print(f'belowA - p2: {abs(belowArea_p2_p3)}')
                 
             return df, peak_tup, y_hat
     
@@ -108,9 +109,9 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
 def calc_integrals(price, y_hat, peak_tup, details=None):
 
     
-    slice_tup = ((0,1), (1,-1))
+    slice_tup = ((0,1,0,1), (1,-1,2,3))
 
-    res_list = list()
+    res_arr = np.zeros(4, dtype=np.float64)
 
     for tup in slice_tup:
 
@@ -132,12 +133,11 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
 
         if details is not None:
             details.update(locals())  # for debugging
+        
+        res_arr[tup[2]] = result[0]
+        res_arr[tup[3]] = result[1]
 
-        res_list.append(result[0])
-        res_list.append(result[1])
-
-
-    return res_list[0], res_list[1], res_list[2], res_list[3]   
+    return res_arr[0], res_arr[1], res_arr[2], res_arr[3]   
 
 
 
@@ -212,7 +212,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     subplt.append(fplt.make_addplot(actual_peaks_slice, type='scatter', markersize=60, color='green'))
 
 
-    fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
+    fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='line', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
     #fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', ylim=(1100.0, 1650.0), alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
 
     
@@ -233,9 +233,9 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     #fplt.show()
 
 
-    to_json(df_slice, y_hat)
+    to_json(df_slice, y_hat_slice)
 
-    return True, df.index[peak_tup[-1]]
+    return df.index[peak_tup[-1]]
 
 
 
