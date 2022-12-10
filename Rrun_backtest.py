@@ -1,4 +1,5 @@
 from strategies import Supertrend, fetch_date_highest_price
+from scipy.signal import argrelmax
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
 from Rget_trendl_3T import *
@@ -20,7 +21,7 @@ class Trendline_test(Strategy):
         self.last_comb = list()
         self.length = list()
         self.y_price = list()
-        self.tmp_peak_arr = tuple()
+        self.prev_peak_cnt = 0
         self.tren_df = pd.DataFrame()
         self.df = self.data.df.copy()
         self.prev_plt_idx = None
@@ -48,15 +49,16 @@ class Trendline_test(Strategy):
 
             i = len(self.data)
 
-
             I = self.data.index[self.swing_high:i].copy()
             C = self.data.Close[self.swing_high:i].copy()
             O = self.data.Open[self.swing_high:i].copy()
 
+            x_peaks = argrelmax(C)[0]
 
-            x_peaks = detect_peaks_guassian(C, self.tmp_peak_arr,0.1)
-            if x_peaks is False:
+            if self.prev_peak_cnt == len(x_peaks) or len(x_peaks) <3:
                 return
+
+            self.prev_peak_cnt = len(x_peaks)
 
             x_peaks_comb = all_combi_af_peaks(x_peaks, self.last_comb)
             y_peaks_comb = fetch_y_values_peaks(C, x_peaks_comb)
@@ -72,8 +74,8 @@ class Trendline_test(Strategy):
             
             self.tren_df = self.tren_df.head(0)
             self.last_comb.clear()
-            self.tmp_peak_arr = tuple()
-            print(f'Trendline have been found - {I[peak_tup[0]]}')
+            self.prev_peak_cnt = 0
+            #print(f'Trendline have been found - {I[peak_tup[0]]}')
 
 
 
@@ -91,7 +93,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-11':]#['2022-10-31':'2022-11-22'] #['2022-10-09':]
+df = df#.loc['2022-11':]#['2022-10-31':'2022-11-22'] #['2022-10-09':]
 print(df)
 
 

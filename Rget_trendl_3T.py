@@ -13,45 +13,11 @@ import time
 
 
 
-
-def detect_peaks_guassian(price, prev_peak_tup, sigma=0.2):
-    """
-    Detect peaks from DataFrame.Close series using Gaussian filter.
-    :param sigma Standard deviation of Gaussian filter.
-    """
-    # Hvorfor tomt array her ?
-    print(f'before pk alg; {prev_peak_tup}')
-
-    #dataFiltered = gaussian_filter1d(price, sigma=sigma)
-    x_peaks = argrelmax(price)[0] #order=2
-
-    if len(x_peaks) == len(prev_peak_tup):
-        return False
-    
-    else:
-        
-        # Når den er blevet sat her ?
-        prev_peak_tup = tuple(x_peaks)
-        print(f'after =:  {prev_peak_tup}')
-        
-        if len(x_peaks) >= 3:
-            return x_peaks
-
-        else: 
-            return False
-
-
-
-
 def all_combi_af_peaks(x_peaks, last_comb):
     """
     Return list of all distinct combinations of length of 3 of :param 
     x_peaks.
     """
-
-    if x_peaks is False: 
-        return
-
 
     x_peaks_comb = list()
                 
