@@ -42,7 +42,7 @@ class Trendline_test(Strategy):
         if  crossover(self.data.Lowerband, self.data.Close):
 
             self.run = True
-            self.swing_high = fetch_date_highest_price(self, -20)
+            self.swing_high = fetch_date_highest_price(self, -40)
     
         
         if self.run:  
@@ -51,6 +51,8 @@ class Trendline_test(Strategy):
 
             I = self.data.index[self.swing_high:i].copy()
             C = self.data.Close[self.swing_high:i].copy()
+            #O = self.data.Open[self.swing_high:i].copy()
+            #green_candles = np.where(C>O)[0]
 
             x_peaks = argrelmax(C)[0]
 
@@ -58,8 +60,11 @@ class Trendline_test(Strategy):
                 return
 
             self.prev_peak_cnt = len(x_peaks)
-
+            
             x_peaks_comb = all_combi_af_peaks(x_peaks, self.last_comb)
+            if not x_peaks_comb:
+                return
+
             y_peaks_comb = fetch_y_values_peaks(C, x_peaks_comb)
             candidates_df, peak_tup, y_hat= peak_regression(C, x_peaks_comb, y_peaks_comb, self.tren_df)
             if candidates_df is None:
@@ -92,7 +97,7 @@ atr_multiplier = 5
 supertrend = Supertrend(df, atr_period, atr_multiplier)
 df = df.join(supertrend)
 
-df = df.loc['2022-11':]#['2022-10-31':'2022-11-22'] #['2022-10-09':]
+df = df.loc['2022':]#.loc['2022-11-14 11:15:00' : '2022-11-14 23:15:00']#['2022-10-31':'2022-11-22'] #['2022-10-09':]
 print(df)
 
 

@@ -1,10 +1,8 @@
-from scipy.ndimage import gaussian_filter1d
-from scipy.stats import linregress
+from numpy import sum as npsum
 from itertools import combinations
 import matplotlib.pyplot as plt
-from scipy.signal import argrelmax
 import mplfinance as fplt
-import pandas as pd
+from numba import jit
 import numpy as np
 import math
 import json
@@ -22,9 +20,9 @@ def all_combi_af_peaks(x_peaks, last_comb):
     x_peaks_comb = list()
                 
     x_peaks_comb += set(combinations(x_peaks, 3)).difference(last_comb)
-    
+
     if not x_peaks_comb:
-        return
+        return False
     
     else:
         last_comb += x_peaks_comb
@@ -32,10 +30,10 @@ def all_combi_af_peaks(x_peaks, last_comb):
     
 
 
-    
+
 def fetch_y_values_peaks(price , x_peak_comb):
     """
-    Return max(df.Close, df.Open) at each peak in peak combinations list.
+    Return df.Close at each peak in peak combinations list.
     :params x_peak_combinations
         List of combinations of length 3.
     """
@@ -43,10 +41,10 @@ def fetch_y_values_peaks(price , x_peak_comb):
         return
     
     # Extract series of peaks.
-    X1, X2, X3 = (list(x) for x in zip(*x_peak_comb))
+    X1, X2, X3 = (np.array(x) for x in zip(*x_peak_comb))
 
     # Bundle up values as tuples of len 3.
-    y_peak_comb = [tuple(y) for y in
+    y_peak_comb = [np.array(y) for y in
             zip(price[X1], price[X2], price[X3])] 
 
 
@@ -66,13 +64,16 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         return None, None, None
     
 
-    for i, (x, y) in enumerate(zip(x_peak_comb, y_peak_comb)):
+    for i, (x, y) in enumerate(zip(np.array(x_peak_comb), y_peak_comb)):
+        
 
-        slope, intercept, r_value, p_value, std_err  = linregress(x, y, alternative='less')
-
-        if r_value > -0.995:
+        try:
+            r_value, slope, intercept = vectorized_linregress(x,y)
+        except ZeroDivisionError as e:
+            e
+        
+        if r_value is None:
             continue
-
 
         peak_tup = tuple(x_peak_comb[i])
         y_hat = slope*np.arange(0, len(price)) + intercept
@@ -85,16 +86,15 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
             df.loc[i, 'length'] = x_peak_comb[i][-1] - x_peak_comb[i][0]
             df.loc[i, 'slope'] = slope
             df.loc[i, 'intercept'] = intercept
-            df.loc[i, 'r_value'] = r_value
-            df.loc[i, 'p_value'] = p_value
-            df.loc[i, 'std_err'] = std_err
+            df.loc[i, 'r_value'] = abs(r_value)
             df.loc[i, 'angle'] = math.degrees(math.atan(slope))
             df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
             df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
             df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
             df.loc[i, 'belowArea_p2_p3'] = belowArea_p2_p3
-            print(f'belowA - p1: {abs(belowArea_p1_p2)}')
-            print(f'belowA - p2: {abs(belowArea_p2_p3)}')
+            #print(f'r_val: {abs(r_value)}')
+            #print(f'belowA - p1: {abs(belowArea_p1_p2)}')
+            #print(f'belowA - p2: {abs(belowArea_p2_p3)}')
                 
             return df, peak_tup, y_hat
     
@@ -102,12 +102,42 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         return None, None, None
     else:
         return df, peak_tup, y_hat
+
+
+
+@jit
+def vectorized_linregress(x, y):
+    """Linear regression calc (Vectorized)"""
     
+    #1. Compute data length, mean and standard deviation along time axis for further use: 
+    n     = x.shape[0]
+    xmean = x.mean()
+    ymean = y.mean()
+    xstd  = x.std()
+    ystd  = y.std()
+    
+    #2. Compute covariance along time axis
+    cov   =  npsum((x - xmean)*(y - ymean))/(n)
+    
+    #3. Compute correlation along time axis
+    r_val   = cov/(xstd*ystd)
+
+    if r_val > -0.995:
+        return None, None, None
+
+    #4. Compute regression slope and intercept:
+    slope     = cov/(xstd**2)
+    intercept = ymean - xmean*slope  
+    
+    return r_val, slope, intercept
 
 
 
-def calc_integrals(price, y_hat, peak_tup, details=None):
 
+def calc_integrals(price, y_hat, peak_tup):
+    """Integral calc (Vectorized)"""
+
+    #slice_arr = np.array([[0,1,0,1],[1,-1,2,3]])
     
     slice_tup = ((0,1,0,1), (1,-1,2,3))
 
@@ -130,9 +160,6 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
         br = (b * rr[:, ::-1]).sum(1)
         a = (b + br[:, None]) * h / 2
         result = np.sum(a[a > 0]), np.sum(a[a < 0])
-
-        if details is not None:
-            details.update(locals())  # for debugging
         
         res_arr[tup[2]] = result[0]
         res_arr[tup[3]] = result[1]
@@ -145,9 +172,7 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
 def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, length_list, y_peak_list):
     if final_trendline is None: return
 
-    assert len(final_trendline) != 0 , f'No trendl candidates - (extract_data_for_plotting)'
 
-    
     # Save y peaks to list:
     y_peaks = list()
    
@@ -215,13 +240,6 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='line', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
     #fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', ylim=(1100.0, 1650.0), alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
 
-    
-    #trendl_details = f'length: {candidates_df.length}, angle: {candidates_df.angle}, area above t1t2: {round(candidates_df.aboveArea_p1_p2,1)}, area below t1t2: {round(candidates_df.belowArea_p1_p2, 1)}, area above t2t3: {round(candidates_df.aboveArea_p2_p3,1)}, Area below t2t3: {round(candidates_df.belowArea_p2_p3,1)}'
-
-    #write_txt = open(f'{path}/{str(timestamp)}.txt',"w")
-    #write_txt.write(trendl_details)
-
-
     #df.reset_index(inplace=True)
 
     #plt.scatter(df_slice.index, scatter_slice, c='green')
@@ -231,7 +249,6 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     #plt.grid()
 
     #fplt.show()
-
 
     to_json(df_slice, y_hat_slice)
 
