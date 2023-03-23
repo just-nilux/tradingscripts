@@ -18,15 +18,14 @@ def all_combi_af_peaks(x_peaks, last_comb):
     """
 
     if x_peaks is False: 
-        return
+        return None
 
+    
+    x_peaks_comb = list(set(combinations(x_peaks, 4)).difference(last_comb))
 
-    x_peaks_comb = list()
-                
-    x_peaks_comb += set(list(combinations(x_peaks, 4))).difference(last_comb)
 
     if not x_peaks_comb:
-        return False
+        return None
     
     else:
         last_comb += x_peaks_comb
@@ -42,15 +41,11 @@ def fetch_y_values_peaks(price , x_peak_comb):
         List of combinations of length 3.
     """
     if x_peak_comb is None: 
-        return
-    
-    # Extract series of peaks.
-    X1, X2, X3, X4 = (np.array(x) for x in zip(*x_peak_comb))
+        return None
 
-    # Bundle up values as tuples of len 3.
-    y_peak_comb = [np.array(y) for y in
-            zip(price[X1], price[X2], price[X3], price[X4])] 
+    X1, X2, X3, X4 = np.array(x_peak_comb).T
 
+    y_peak_comb = np.column_stack((price[X1], price[X2], price[X3], price[X4]))
 
     return y_peak_comb
 
@@ -67,10 +62,8 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
     if x_peak_comb is None:
         return None, None, None
     
-
     for i, (x, y) in enumerate(zip(np.array(x_peak_comb), y_peak_comb)):
-        
-
+    
         try:
             r_value, slope, intercept = vectorized_linregress(x,y)
         except ZeroDivisionError as e:
@@ -83,7 +76,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         y_hat = slope*np.arange(0, len(price)) + intercept
         aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3, aboveArea_p3_p4, belowArea_p3_p4 = calc_integrals(price, y_hat, peak_tup)
 
-        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10 and aboveArea_p3_p4 < 10 and abs(belowArea_p1_p2) < 700 and abs(belowArea_p2_p3) < 700 and abs(belowArea_p3_p4) < 700 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100 and abs(belowArea_p3_p4) > 100:
+        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10 and aboveArea_p3_p4 < 10 and abs(belowArea_p1_p2) < 700 and abs(belowArea_p2_p3) < 700 and abs(belowArea_p3_p4) < 700 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100 and abs(belowArea_p3_p4) > 30:
 
             df.loc[i, 'start_index'] = x_peak_comb[i][0]
             df.loc[i, 'end_index'] = x_peak_comb[i][-1]
@@ -108,10 +101,10 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         return df, peak_tup, y_hat
 
 
-@jit
+@jit(cache=True, nopython=True)
 def vectorized_linregress(x, y):
     """Linear regression calc (Vectorized)"""
-    
+
     #1. Compute data length, mean and standard deviation along time axis for further use: 
     n     = x.shape[0]
     xmean = x.mean()
@@ -138,12 +131,11 @@ def vectorized_linregress(x, y):
 
 def calc_integrals(price, y_hat, peak_tup, details=None):
 
+    slice_arr = np.array([[0,1,0,1],[1,2,2,3],[2,-1,4,5]])
     
-    slice_tup = ((0,1,0,1),(1,2,2,3),(2,-1,4,5))
-
     res_arr = np.zeros(6, dtype=np.float64)
 
-    for tup in slice_tup:
+    for tup in slice_arr:
 
         y1 =price[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
         y2 =y_hat[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
@@ -174,16 +166,12 @@ def calc_integrals(price, y_hat, peak_tup, details=None):
 
 
 def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, length_list, y_peak_list):
-    if final_trendline is None: return
-
-    assert len(final_trendline) != 0 , f'No trendl candidates - (extract_data_for_plotting)'
+    if final_trendline is None: 
+        return None
 
     
     # Save y peaks to list:
-    y_peaks = list()
-   
-    for peak in x_peaks:
-        y_peaks.append(close[peak])
+    y_peaks = [close[peak] for peak in x_peaks]
 
 
     length_list.append(int(final_trendline.length))
@@ -192,17 +180,8 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, 
     #print(f'min y price: {min(y_peak_list)}')
     #print(f'max y price:{max(y_peak_list)}')
 
-
-
-    scatter = np.full(len(index), fill_value=np.nan)
-    scatter_act_peak = np.full(len(index), fill_value=np.nan)
-
-    for peak in peak_tup:
-        scatter_act_peak[peak] = close[peak]
-
-
-    for peak in x_peaks:
-        scatter[peak] = close[peak]
+    scatter_act_peak = [close[i] if i in peak_tup else np.nan for i in range(len(index))]
+    scatter = [close[i] if i in x_peaks else np.nan for i in range(len(index))]
 
 
     return (scatter, scatter_act_peak) 
@@ -243,7 +222,7 @@ def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tu
     subplt.append(fplt.make_addplot(actual_peaks_slice, type='scatter', markersize=60, color='green'))
 
 
-    fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='line', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
+    fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candlestick', style='binance', title='Trend Hunter - ETHUSDT - 15M', alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
     #fig, axlist = fplt.plot(df_slice, figratio=(16,9), type='candle', style='binance', title='Trend Hunter - ETHUSDT - 15M', ylim=(1100.0, 1650.0), alines=dict(alines=trendl_plot) , addplot=subplt, ylabel='Price ($)', returnfig=True, savefig=f'{path}/{str(timestamp)}.png')
 
 

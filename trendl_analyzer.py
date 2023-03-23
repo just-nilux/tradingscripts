@@ -18,6 +18,11 @@ def fetch_y_values_peaks(price , x_touches):
     y_touches1 = price[x_touches[0]]
     y_touches2 = price[x_touches[1]]
     y_touches3 = price[x_touches[2]]
+
+
+    y_touches1 = price.iloc[x_touches[0]]
+
+    print(y_touches1)
    
     y_touches = np.array([y_touches1, y_touches2, y_touches3])
 
@@ -131,6 +136,6 @@ def main(start, stop, x_touches):
     print(df)
 
 
-    y_touches = fetch_y_values_peaks(C, np.array(x_touches))
+    y_touches = fetch_y_values_peaks(df.Close, np.array(x_touches))
     y_hat = peak_regression(C, x_touches, y_touches)
     plotter(df, y_hat, x_touches, y_touches )

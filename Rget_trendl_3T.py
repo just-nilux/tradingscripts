@@ -1,12 +1,44 @@
 from numpy import sum as npsum
 from itertools import combinations
+from numpy import corrcoef, isclose
 import matplotlib.pyplot as plt
 import mplfinance as fplt
 from numba import jit
+from numba import typed
+
 import numpy as np
-import math
+from math import atan, degrees
 import json
 import time 
+
+
+@jit
+def mul_xor_hash(arr, init=65537, k=37):
+    result = init
+    for x in arr.view(np.uint64):
+        result = (result * k) ^ x
+    return result
+
+
+@jit
+def setdiff2d_nb(arr1, arr2):
+    # : build `delta` set using hashes
+    delta = {mul_xor_hash(arr2[0])}
+    for i in range(1, arr2.shape[0]):
+        delta.add(mul_xor_hash(arr2[i]))
+    # : compute the size of the result
+    n = 0
+    for i in range(arr1.shape[0]):
+        if mul_xor_hash(arr1[i]) not in delta:
+            n += 1
+    # : build the result
+    result = np.empty((n, arr1.shape[-1]), dtype=arr1.dtype)
+    j = 0
+    for i in range(arr1.shape[0]):
+        if mul_xor_hash(arr1[i]) not in delta:
+            result[j] = arr1[i]
+            j += 1
+    return result
 
 
 
@@ -15,42 +47,83 @@ def all_combi_af_peaks(x_peaks, last_comb):
     """
     Return list of all distinct combinations of length of 3 of :param 
     x_peaks.
+
+    last_comb = list()
     """
 
-    x_peaks_comb = list()
-                
-    x_peaks_comb += set(combinations(x_peaks, 3)).difference(last_comb)
-
+    x_peaks_comb = list(set(combinations(x_peaks, 3)).difference(last_comb))
+    
     if not x_peaks_comb:
-        return False
+        return None
     
     else:
         last_comb += x_peaks_comb
         return x_peaks_comb
     
 
+@jit('(int64, int64)')
+def combCount(n, r):
+    if r < 0:
+        return 0
+    res = 1
+    if r > n - r:
+        r = n - r
+    for i in range(r):
+        res *= (n - i)
+        res //= (i + 1)
+    return res
+
+
+@jit(inline='always')
+def genComb_x3(arr):
+    n = arr.size
+    nComb = combCount(n, 3)
+    out = np.empty((nComb, 3), dtype=arr.dtype)
+    a, b, c = 0, 1, 2
+    arr_a = arr[a]
+    arr_b = arr[b]
+    for cur in range(nComb):
+        out[cur, 0] = arr_a
+        out[cur, 1] = arr_b
+        out[cur, 2] = arr[c]
+        if c < n - 1:
+            c += 1
+        else:
+            if b < n - 2:
+                b, c = b + 1, b + 2
+                arr_b = arr[b]
+            else:
+                a, b, c = a + 1, a + 2, a + 3
+                arr_a = arr[a]
+                arr_b = arr[b]
+    
+    return out
 
 
 def fetch_y_values_peaks(price , x_peak_comb):
+
     """
-    Return df.Close at each peak in peak combinations list.
+    Return price at each peak in x_peak_comb array.
     :params x_peak_combinations
-        List of combinations of length 3.
+        array of combinations of length 3.
     """
     if x_peak_comb is None: 
-        return
+        return None
     
+
     # Extract series of peaks.
-    X1, X2, X3 = (np.array(x) for x in zip(*x_peak_comb))
+    #X1, X2, X3 = [np.array(x) for x in zip(*x_peak_comb)]
 
-    # Bundle up values as tuples of len 3.
-    y_peak_comb = [np.array(y) for y in
-            zip(price[X1], price[X2], price[X3])] 
+    # Extract series of peaks using NumPy advanced indexing.
+    X1, X2, X3 = np.array(x_peak_comb).T
 
+    # Bundle up values as arrays of len 3.
+    #y_peak_comb = [np.array(y) for y in
+    #    zip(price[X1], price[X2], price[X3])] 
+    
+    y_peak_comb = np.column_stack((price[X1], price[X2], price[X3]))
 
     return y_peak_comb
-
-
 
 
 def peak_regression(price, x_peak_comb, y_peak_comb, df):
@@ -61,7 +134,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         List of peak value combinations (tuples) of len 3
     """
     if x_peak_comb is None:
-        return None, None, None
+        return None, None, None 
     
 
     for i, (x, y) in enumerate(zip(np.array(x_peak_comb), y_peak_comb)):
@@ -79,7 +152,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         y_hat = slope*np.arange(0, len(price)) + intercept
         aboveArea_p1_p2, belowArea_p1_p2, aboveArea_p2_p3, belowArea_p2_p3 = calc_integrals(price, y_hat, peak_tup)
 
-        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) < 700 and abs(belowArea_p2_p3) < 700 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100:
+        if aboveArea_p1_p2 < 10 and aboveArea_p2_p3 < 10  and abs(belowArea_p1_p2) < 1000 and abs(belowArea_p2_p3) < 1000 and abs(belowArea_p1_p2) > 100 and abs(belowArea_p2_p3) > 100:
 
             df.loc[i, 'start_index'] = x_peak_comb[i][0]
             df.loc[i, 'end_index'] = x_peak_comb[i][-1]
@@ -87,7 +160,7 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
             df.loc[i, 'slope'] = slope
             df.loc[i, 'intercept'] = intercept
             df.loc[i, 'r_value'] = abs(r_value)
-            df.loc[i, 'angle'] = math.degrees(math.atan(slope))
+            df.loc[i, 'angle'] = degrees(atan(slope))
             df.loc[i, 'aboveArea_p1_p2'] = aboveArea_p1_p2
             df.loc[i, 'belowArea_p1_p2'] = belowArea_p1_p2
             df.loc[i, 'aboveArea_p2_p3'] = aboveArea_p2_p3
@@ -104,8 +177,33 @@ def peak_regression(price, x_peak_comb, y_peak_comb, df):
         return df, peak_tup, y_hat
 
 
+from numpy import corrcoef, isclose
 
-@jit
+@jit(inline='always')
+def vectorized_linregress_chat(x, y):
+    
+    r_val = corrcoef(x, y)[0][1]
+    if r_val>.995:
+        return None, None, None
+
+
+    n = x.shape[0]
+    #1. Compute data length, mean and standard deviation along time axis for further use: 
+    xmean = x.mean()
+    ymean = y.mean()
+    xstd  = x.std()
+    
+    #2. Compute covariance along time axis
+    cov   =  npsum((x - xmean)*(y - ymean))/(n)
+
+    #4. Compute regression slope and intercept:
+    slope     = cov/(xstd**2)
+    intercept = ymean - xmean*slope  
+    
+    return r_val, slope, intercept
+
+
+@jit(inline='always')
 def vectorized_linregress(x, y):
     """Linear regression calc (Vectorized)"""
     
@@ -137,13 +235,13 @@ def vectorized_linregress(x, y):
 def calc_integrals(price, y_hat, peak_tup):
     """Integral calc (Vectorized)"""
 
-    #slice_arr = np.array([[0,1,0,1],[1,-1,2,3]])
+    slice_arr = np.array([[0,1,0,1],[1,-1,2,3]])
     
-    slice_tup = ((0,1,0,1), (1,-1,2,3))
+    #slice_tup = ((0,1,0,1), (1,-1,2,3))
 
     res_arr = np.zeros(4, dtype=np.float64)
 
-    for tup in slice_tup:
+    for tup in slice_arr:
 
         y1 =price[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
         y2 =y_hat[peak_tup[tup[0]]:peak_tup[tup[1]]+1]
@@ -170,15 +268,11 @@ def calc_integrals(price, y_hat, peak_tup):
 
 
 def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, length_list, y_peak_list):
-    if final_trendline is None: return
+    if final_trendline is None: 
+        return None
 
 
-    # Save y peaks to list:
-    y_peaks = list()
-   
-    for peak in x_peaks:
-        y_peaks.append(close[peak])
-
+    y_peaks = [close[peak] for peak in x_peaks]
 
     length_list.append(int(final_trendline.length))
     y_peak_list.append(max(y_peaks))
@@ -187,16 +281,8 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, 
     #print(f'max y price:{max(y_peak_list)}')
 
 
-
-    scatter = np.full(len(index), fill_value=np.nan)
-    scatter_act_peak = np.full(len(index), fill_value=np.nan)
-
-    for peak in peak_tup:
-        scatter_act_peak[peak] = close[peak]
-
-
-    for peak in x_peaks:
-        scatter[peak] = close[peak]
+    scatter_act_peak = [close[i] if i in peak_tup else np.nan for i in range(len(index))]
+    scatter = [close[i] if i in x_peaks else np.nan for i in range(len(index))]
 
 
     return (scatter, scatter_act_peak) 
@@ -205,7 +291,8 @@ def extract_data_for_plotting(close, index, final_trendline, x_peaks, peak_tup, 
 
 def plot_final_peaks_and_final_trendline(df, tup_data, y_hat, timestamp, peak_tup, candidates_df, fit_plot=0):
 
-    if tup_data is None: return
+    if tup_data is None: 
+        return None
     
 
     scatter, actual_peaks = tup_data[0], tup_data[1]
