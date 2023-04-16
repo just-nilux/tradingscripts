@@ -12,7 +12,7 @@
     "dydx_default_ethereum_address": "0x54717a548a8e48fcce4423568bb0826d3f31c3b5",
     "position_size": 0.1,
     "base_asset": "USD",
-    "symbols": ["BTC-USD"],
+    "symbols": ["ETH-USD"],
     "time_frame": [["1MIN"]],
     "leverage": [[3]],
     "tp": [[1]],

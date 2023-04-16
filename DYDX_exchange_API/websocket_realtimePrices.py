@@ -47,11 +47,7 @@ class RealTimePriceFetcher:
                         data = json.loads(res)
 
                         if 'contents' in data:
-                            contents = data['contents']
-                            for sym in self.symbols:
-                                index_price = contents.get(sym, {}).get('indexPrice', None)
-                                if index_price:
-                                    self.latest_prices[sym] = float(index_price)
+                            self.latest_prices = data['contents']
                     except (websockets.exceptions.ConnectionClosedError, json.JSONDecodeError) as e:
                         print(f'Error while receiving data: {e}')
                         break
@@ -71,7 +67,5 @@ class RealTimePriceFetcher:
 
     def get_latest_prices(self, symbol):
         if isinstance(self.latest_prices, dict):
-            return self.latest_prices.get(symbol, "Symbol not found in the latest_prices dictionary yet... few more seconds")
-        else:
-            return "websocket needs a few seconds to connect"
+            return self.latest_prices.get(symbol, {}).get('indexPrice', "websocket needs a few seconds to connect")
 
