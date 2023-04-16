@@ -14,7 +14,7 @@
     "base_asset": "USD",
     "symbols": ["BTC-USD"],
     "time_frame": [["1MIN"]],
-    "leverage": [[1]],
+    "leverage": [[3]],
     "tp": [[1]],
     "sl": [[1]],
 

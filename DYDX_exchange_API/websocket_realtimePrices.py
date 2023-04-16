@@ -68,9 +68,10 @@ class RealTimePriceFetcher:
     def stop(self):
         self.stop_signal = True
 
-    def get_latest_prices(self):
-        if self.latest_prices:
-            return self.latest_prices
+
+    def get_latest_prices(self, symbol):
+        if isinstance(self.latest_prices, dict):
+            return self.latest_prices.get(symbol, "Symbol not found in the latest_prices dictionary yet... few more seconds")
         else:
-            return "websocket needs a few second to connect"
+            return "websocket needs a few seconds to connect"
 

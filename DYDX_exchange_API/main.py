@@ -34,9 +34,8 @@ def main():
                         
                         sleep(60)
 
-        latest_prices = price_fetcher.get_latest_prices()
-        if isinstance(latest_prices, dict):
-            print(latest_prices['BTC-USD'])
+        latest_price = price_fetcher.get_latest_prices(symbol='BTC-USD')#config['symbols'][symbol])
+        print(latest_price)
 
         sleep(1)
 
