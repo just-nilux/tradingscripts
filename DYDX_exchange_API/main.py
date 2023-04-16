@@ -34,7 +34,7 @@ def main():
                         
                         sleep(60)
 
-        latest_price = price_fetcher.get_latest_prices(symbol='BTC-USD')#config['symbols'][symbol])
+        latest_price = price_fetcher.get_latest_prices(symbol=config['symbols'][symbol])
         print(latest_price)
 
         sleep(1)
