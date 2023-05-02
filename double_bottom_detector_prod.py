@@ -33,10 +33,14 @@ class DoubleBottomDetector:
 
         Example:
 
+            detector = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+            
             detector.support_zone_upper = float(1000)
             detector.support_zone_lower = float(800)
             detector.current_row = ohlcv[-1]
             res = detector.detect()
+
+            "res": timestamp of the triggercandle.
     """
 
     @staticmethod
@@ -100,7 +104,7 @@ class DoubleBottomDetector:
 
 
 
-    def detect(self) -> Union[None, pd.Timestamp]:
+    def detect(self) -> pd.Timestamp:
 
         if (self.current_row.Open > self.support_zone_upper and self.current_row.Low <= self.support_zone_upper and
             self.current_row.Close >= self.support_zone_lower and self.timestamp_for_first_touch is None):
@@ -122,13 +126,11 @@ class DoubleBottomDetector:
                 
                 self.logger.warning(f"Candle closed below lower support zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
-                return self.current_row.Index
             
             elif self.current_row.Close < self.buy_zone[1]:
 
                 self.logger.warning(f"Candle closed below buy zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
-                return self.current_row.Index
             
             elif self.current_row.Low > self.support_zone_upper and not self.swing_detected:
 
@@ -147,7 +149,6 @@ class DoubleBottomDetector:
                 
                 self.logger.warning(f"Double bottom not forfilled within {self.invalidation_n} periods. Setup invalid.")
                 self.reset()
-                return self.current_row.Index
             
             elif self.swing_detected and self.current_row.Low <= self.buy_zone[0]:
                 self.logger.info(f"Price in buy zone: {self.current_row.Index}")
