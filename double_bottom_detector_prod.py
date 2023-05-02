@@ -26,7 +26,7 @@ class DoubleBottomDetector:
         reset() -> None:
             Resets the state of the detector to start a new detection cycle.
         
-        detect() -> Union[None, pd.Timestamp]:
+        detect() -> pd.Timestamp:
             Analyzes the current_row of time series data to detect a double bottom pattern.
             If a double bottom pattern is detected, returns the timestamp of the last row.
             Otherwise, returns None.
