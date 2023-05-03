@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from typing import List, Tuple, Union
+from typing import Tuple, Union, Optional
 
 
 
@@ -26,7 +26,7 @@ class DoubleBottomDetector:
         reset() -> None:
             Resets the state of the detector to start a new detection cycle.
         
-        detect() -> pd.Timestamp:
+        detect() -> Union[None, pd.Timestamp]:
             Analyzes the current_row of time series data to detect a double bottom pattern.
             If a double bottom pattern is detected, returns the timestamp of the last row.
             Otherwise, returns None.
@@ -80,7 +80,6 @@ class DoubleBottomDetector:
         self.support_zone_upper: Union[float, None] = None
         self.support_zone_lower: Union[float, None] = None
 
-        self.i: int = 0
         self.current_row: pd.Series = pd.Series(dtype='float64')
 
         self.timestamp_for_first_touch: Union[pd.Timestamp, None] = None
@@ -95,7 +94,6 @@ class DoubleBottomDetector:
 
 
     def reset(self) -> None:
-        self.i = 0
         self.timestamp_for_first_touch = None
         self.candle_counter = 0
         self.invalidation_cnt = 0
@@ -104,58 +102,58 @@ class DoubleBottomDetector:
 
 
 
-    def detect(self) -> pd.Timestamp:
+    def detect(self) -> Optional[pd.Timestamp]:
 
-        if (self.current_row.Open > self.support_zone_upper and self.current_row.Low <= self.support_zone_upper and
-            self.current_row.Close >= self.support_zone_lower and self.timestamp_for_first_touch is None):
+        if self.timestamp_for_first_touch is None:
 
-            self.timestamp_for_first_touch = self.current_row.Index
-            self.buy_zone = (min(self.current_row.Close, self.support_zone_upper), self.current_row.Low)
+            if self.current_row.Open > self.support_zone_upper and self.current_row.Low <= self.support_zone_upper and self.current_row.Close >= self.support_zone_lower:
 
-            self.logger.info(f'Support Zone upper: {self.support_zone_upper}')
-            self.logger.info(f'Support Zone Lower: {self.support_zone_lower}')
-            self.logger.info(f'First touch of support zone at: {self.timestamp_for_first_touch} - Low:{self.current_row.Low}')
-            self.logger.info(f"Buy zone: {self.buy_zone}")
+                self.timestamp_for_first_touch = self.current_row.Index
+                self.buy_zone = (min(self.current_row.Close, self.support_zone_upper), self.current_row.Low)
+
+                self.logger.info(f'Support Zone upper: {self.support_zone_upper}')
+                self.logger.info(f'Support Zone Lower: {self.support_zone_lower}')
+                self.logger.info(f'First touch of support zone at: {self.timestamp_for_first_touch} - Low:{self.current_row.Low}')
+                self.logger.info(f"Buy zone: {self.buy_zone}")
         
-        elif self.timestamp_for_first_touch is not None:
-            
-            if self.swing_detected:
-                self.invalidation_cnt += 1
+        else:
 
             if self.current_row.Close < self.support_zone_lower:
                 
                 self.logger.warning(f"Candle closed below lower support zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
+                return None
             
             elif self.current_row.Close < self.buy_zone[1]:
 
                 self.logger.warning(f"Candle closed below buy zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
+                return None
             
-            elif self.current_row.Low > self.support_zone_upper and not self.swing_detected:
+            if self.swing_detected:
+                self.invalidation_cnt += 1
 
-                self.candle_counter += 1
-
-                if self.candle_counter == self.n_periods_to_confirm_swing:
-
-                    self.logger.info(f'Swing after first touch detected: {self.current_row.Index}')
-                    self.swing_detected = True
-
-            elif self.current_row.Low < self.support_zone_upper and not self.swing_detected:
-
-                self.candle_counter = 0
-            
-            elif self.swing_detected and self.invalidation_cnt > self.invalidation_n:
+                if self.invalidation_cnt > self.invalidation_n:
                 
-                self.logger.warning(f"Double bottom not forfilled within {self.invalidation_n} periods. Setup invalid.")
-                self.reset()
+                    self.logger.warning(f"Double bottom not forfilled within {self.invalidation_n} periods. Setup invalid.")
+                    self.reset()
             
-            elif self.swing_detected and self.current_row.Low <= self.buy_zone[0]:
-                self.logger.info(f"Price in buy zone: {self.current_row.Index}")
-                self.reset()
-                return self.current_row.Index
+                elif self.current_row.Low <= self.buy_zone[0]:
+                    self.logger.info(f"Price in buy zone: {self.current_row.Index}")
+                    self.reset()
+                    return self.current_row.Index
 
+            else:
 
+                if self.current_row.Low > self.support_zone_upper:
+                
+                    self.candle_counter += 1
 
+                    if self.candle_counter == self.n_periods_to_confirm_swing:
 
+                        self.logger.info(f'Swing after first touch detected: {self.current_row.Index}')
+                        self.swing_detected = True
 
+                elif self.current_row.Low < self.support_zone_upper:
+
+                    self.candle_counter = 0
