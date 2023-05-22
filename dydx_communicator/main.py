@@ -165,9 +165,6 @@ def execute_strategies(client, detectors, liq_levels):
 
 
 
-
-
-
 def main():
     logging.info("Initializing detectors")
     client = DydxClient()
@@ -191,7 +188,11 @@ def main():
         # Sleep for the remaining seconds
         time.sleep(remaining_seconds)
 
-        liq_levels = process_json_file(json_file_path)
+        res = process_json_file(json_file_path)
+
+        if res != None:
+            liq_levels = res
+
         execute_strategies(client, detectors, liq_levels)
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
