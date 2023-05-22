@@ -60,7 +60,6 @@ class DoubleTopDetector:
         logger.addHandler(ch)
         return logger
 
-    logger = setup_logger()
 
 
     def __init__(self, n_periods_to_confirm_swing: int, invalidation_n: int) -> None:
@@ -81,6 +80,8 @@ class DoubleTopDetector:
 
         self.invalidation_period_cnt: int = 0
         self.candle_counter: int = 0
+
+        self.logger = self.setup_logger()
 
 
     def reset(self) -> None:
