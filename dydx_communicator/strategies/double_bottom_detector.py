@@ -68,7 +68,7 @@ class DoubleBottomDetector:
     
 
 
-    logger = setup_logger()
+       
 
 
 
@@ -91,6 +91,8 @@ class DoubleBottomDetector:
         self.invalidation_period_cnt: int = 0
         self.candle_counter: int = 0
 
+        self.logger = self.setup_logger()
+
 
 
     def reset(self) -> None:
@@ -102,8 +104,7 @@ class DoubleBottomDetector:
 
 
 
-    def detect(self):# -> Tuple[Optional[pd.Series], Optional[str]]:
-        return (self.current_row, "BUY")
+    def detect(self) -> Union[None, Tuple[pd.Series, str]]:
 
         if self.timestamp_for_first_touch is None:
 
