@@ -1,0 +1,6 @@
+connectors==4.1
+dydx_v3_python==2.0.1
+pandas==1.5.1
+pandas_ta==0.3.85b0
+websockets==11.0.1
+websockets==9.1
