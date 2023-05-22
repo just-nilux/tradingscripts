@@ -1,5 +1,6 @@
 from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
+from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
 
@@ -177,6 +178,8 @@ def main():
     
     # Initialize the last hash as an empty string
     process_json_file.last_hash = ''
+
+    liq_levels = defaultdict(list)
 
     while True:
         # Get the current time
