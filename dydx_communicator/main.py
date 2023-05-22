@@ -1,6 +1,7 @@
 from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
 from DydxClient import DydxClient
+from json_file_processor import process_json_file
 
 import pandas_ta as ta
 import pandas as pd
@@ -104,7 +105,7 @@ def fetch_support_resistance(symbol):
 
 
 
-def execute_strategies(client, detectors):
+def execute_strategies(client, detectors, liq_levels):
     current_time = datetime.datetime.now()
     minutes = current_time.minute
 
@@ -170,7 +171,13 @@ def main():
     logging.info("Initializing detectors")
     client = DydxClient()
     detectors = initialize_detectors(client)
-   
+    
+    # .json filepath:
+    json_file_path = '/opt/tvserver/database.json'
+    
+    # Initialize the last hash as an empty string
+    process_json_file.last_hash = ''
+
     while True:
         # Get the current time
         current_time = datetime.datetime.now()
@@ -181,8 +188,9 @@ def main():
         # Sleep for the remaining seconds
         time.sleep(remaining_seconds)
 
-        execute_strategies(client, detectors)
-        
+        liq_levels = process_json_file(json_file_path)
+        execute_strategies(client, detectors, liq_levels)
+
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
         logging.debug("Sleeping untill next minute")
         
