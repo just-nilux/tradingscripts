@@ -172,10 +172,22 @@ def main():
     detectors = initialize_detectors(client)
    
     while True:
+        # Get the current time
+        current_time = datetime.datetime.now()
+
+        # Calculate the remaining seconds until the next minute
+        remaining_seconds = 60 - current_time.second
+
+        # Sleep for the remaining seconds
+        time.sleep(remaining_seconds)
+
         execute_strategies(client, detectors)
+        
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
-        logging.debug("Sleeping for 60 seconds")
-        time.sleep(60)
+        logging.debug("Sleeping untill next minute")
+        
+        # Sleep for 1 second to ensure it runs at the beginning of the minute
+        time.sleep(1)
 
 
 if __name__ == '__main__':

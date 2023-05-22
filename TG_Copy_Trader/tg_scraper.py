@@ -24,12 +24,20 @@ def error_handler(update: Update, context: CallbackContext):
 
 def check_close_trade(message, original_message):
     trade_info = {}
+    try:
+        if any(word in message.lower() for word in ['lukker', 'lukke', 'lukkes']) and any(word in message.lower() for word in ['traden', 'trade']) and re.search(r'COIN:\s*([A-Z]+)', original_message, re.IGNORECASE):
+            coin_match = re.search(r'COIN:\s*([A-Z]+)', original_message, re.IGNORECASE)
+            trade_info['close_trade'] = coin_match.group(1) + "USD"
+            return trade_info
 
-    if any(word in message.lower() for word in ['lukker', 'lukke', 'lukkes']) and any(word in message.lower() for word in ['traden', 'trade']):
-        coin_match = re.search(r'COIN:\s*([A-Z]+)', original_message, re.IGNORECASE)
-        trade_info['close_trade'] = coin_match.group(1) + "USD"
-        return trade_info
-    return None
+        elif any(word in message.lower() for word in ['lukker', 'lukke', 'lukkes']) and any(word in message.lower() for word in ['traden', 'trade']) and re.findall(r'\b[A-Z]{3,4}\b', message):
+            coin_match = re.findall(r'\b[A-Z]{3,4}\b', message)
+            trade_info['close_trade'] = coin_match.group(1) + "USD"
+            return trade_info
+        return None
+    except Exception:
+        pass
+
 
 
 
