@@ -49,11 +49,3 @@ def process_json_file(file_path):
         print(f"Symbol: {symbol}, Prices: {rounded_prices}")
     
     return results
-
-
-# Initialize the last hash as an empty string
-process_json_file.last_hash = ''
-
-# Example usage
-json_file_path = '/opt/tvserver/database.json'
-result = process_json_file(json_file_path)
