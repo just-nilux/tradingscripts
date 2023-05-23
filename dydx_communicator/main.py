@@ -3,6 +3,7 @@ from strategies.double_top_detector import DoubleTopDetector
 from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
+from send_telegram_message import send_telegram_message
 
 import pandas_ta as ta
 import pandas as pd
@@ -13,6 +14,31 @@ import time
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
+
+
+def check_liquidation_zone(data, client):
+    """
+    Check the liquidation zone for each symbol in the data and send a 
+    Telegram message if the current price is outside the provided zone.
+
+    Args:
+    data (dict): A dictionary with symbols as keys and list of prices as values.
+    client (obj): Client object to connect with the server and get market data.
+    config (dict): A configuration dictionary containing 'bot_token' and 'chat_ids'.
+    """
+
+    for symbol, prices in data.items():
+        if len(prices) == 4:
+            market = client.client.public.get_markets(market=symbol).data['markets'][symbol]
+            current_price = float(market['oraclePrice'])
+            min_price = min(prices)
+            max_price = max(prices)
+
+            if not min_price < current_price < max_price:
+                msg = f'Liq. zone need to be updated for symbol: {symbol}'
+                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+                print(msg)
+
 
 
 def update_config_with_symbols(data: defaultdict, client):
@@ -217,6 +243,8 @@ def main():
             update_config_with_symbols(liq_levels, client)
 
         execute_strategies(client, detectors, liq_levels)
+
+        check_liquidation_zone(liq_levels, client)
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
         logging.debug("Sleeping untill next minute")
