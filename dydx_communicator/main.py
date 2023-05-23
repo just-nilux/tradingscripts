@@ -149,15 +149,18 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
 
 
 
-def fetch_support_resistance(symbol):
-    # implement sup / rest levels from .json:
-    # Dummy data for now...
+def fetch_support_resistance(symbol, liq_levels):
 
-    print(symbol)
-    support_upper = 100000
-    support_lower = 100
-    resistance_upper = 120000
-    resistance_lower = 110
+    # fetch support and resistance levels
+    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'BTC-USD'
+
+    # Assign the values to variables
+    support_lower = min(liq_data)
+    support_upper = sorted(liq_data)[1]  # Second lowest value
+
+    resistance_upper = max(liq_data)
+    resistance_lower = sorted(liq_data)[-2]  # Second highest value
+
 
     return support_upper, support_lower, resistance_upper, resistance_lower
 
@@ -179,17 +182,10 @@ def execute_strategies(client, detectors, liq_levels):
                 if not (minutes % timeframe_minutes):
                     # fordi at [:-1] er nyeste ikke lukket candle.
                     df = client.get_klines(symbol, timeframe)[:-1]
-                    
+
                     # fetch support and resistance levels
-                    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'BTC-USD'
-
-                    # Assign the values to variables
-                    support_lower = min(liq_data)
-                    support_upper = sorted(liq_data)[1]  # Second lowest value
-
-                    resistance_upper = max(liq_data)
-                    resistance_lower = sorted(liq_data)[-2]  # Second highest value
-
+                    support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
+                    
                     
                     for strategy_function_name in strategy['strategy_functions']:
                         strategy_function = globals()[strategy_function_name]
