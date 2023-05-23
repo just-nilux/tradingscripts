@@ -37,7 +37,7 @@ def check_liquidation_zone(data, client):
             if not min_price < current_price < max_price:
                 msg = f'Liq. zone need to be updated for symbol: {symbol}'
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
-                print(msg)
+                logging.debug(msg)
 
 
 
@@ -180,8 +180,16 @@ def execute_strategies(client, detectors, liq_levels):
                     # fordi at [:-1] er nyeste ikke lukket candle.
                     df = client.get_klines(symbol, timeframe)[:-1]
                     
-                    # Calculate support and resistance levels
-                    support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol)
+                    # fetch support and resistance levels
+                    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'BTC-USD'
+
+                    # Assign the values to variables
+                    support_lower = min(liq_data)
+                    support_upper = sorted(liq_data)[1]  # Second lowest value
+
+                    resistance_upper = max(liq_data)
+                    resistance_lower = sorted(liq_data)[-2]  # Second highest value
+
                     
                     for strategy_function_name in strategy['strategy_functions']:
                         strategy_function = globals()[strategy_function_name]
