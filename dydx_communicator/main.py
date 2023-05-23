@@ -33,7 +33,7 @@ def update_config_with_symbols(data: defaultdict, client):
         strategy['symbols'] = [k for k, v in data.items() if len(v) == 3]
 
     # Write back the updated json to file
-    with open(client.config_file, 'w') as json_file:
+    with open(client.config, 'w') as json_file:
         json.dump(client.config, json_file, indent=2)
 
 
