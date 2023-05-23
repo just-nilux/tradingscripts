@@ -23,7 +23,6 @@ class SweepDetector:
         logger.addHandler(ch)
         return logger
 
-    logger = setup_logger()
 
 
     def __init__(self, n_periods_to_confirm_sweep: int, cross_pct_threshold: float) -> None:
@@ -43,6 +42,9 @@ class SweepDetector:
         self.cross_of_upper_liq: bool = False
         self.cross_of_lower_liq: bool = False
         self.sweep_crossed_with_min_req_pct: bool = False
+
+        self.logger = self.setup_logger()
+
 
 
 
