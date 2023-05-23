@@ -51,16 +51,25 @@ def update_config_with_symbols(data: defaultdict, client):
     data (defaultdict): The defaultdict containing symbol data. Keys are symbols, values are lists.                                                                                          
     client (object): The client object, expected to have 'config' and 'config_file' attributes.                                                                                              
 
-    Returns: None
+    Returns: True if some symbols have been added, False otherwise
     """
     
+    symbols_added = False
+
     # Update the symbols in strategies for symbols with length == 4 in defaultdict
     for strategy in client.config['strategies']:
-        strategy['symbols'] = [k for k, v in data.items() if len(v) == 4]
+        new_symbols = [k for k, v in data.items() if len(v) == 4]
+        if set(new_symbols) != set(strategy['symbols']):
+            strategy['symbols'] = new_symbols
+            symbols_added = True
 
     # Write back the updated json to file
-    with open("config.json", 'w') as json_file:
-        json.dump(client.config, json_file, indent=2)
+    if symbols_added:
+        with open("config.json", 'w') as json_file:
+            json.dump(client.config, json_file, indent=2)
+
+    return symbols_added
+
 
 
 
@@ -238,9 +247,11 @@ def main():
 
         res = process_json_file(json_file_path)
 
-        if res != None:
+        if res is not None:
             liq_levels = res
-            update_config_with_symbols(liq_levels, client)
+            symbols_added = update_config_with_symbols(liq_levels, client)
+            if symbols_added:
+                detectors = initialize_detectors(client)
 
         execute_strategies(client, detectors, liq_levels)
 
