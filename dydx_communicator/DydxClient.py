@@ -111,8 +111,33 @@ class DydxClient:
             print(f"An error occurred while fetching free equity: {e}")
             return None
         
-    
-    
+
+
+    def fetch_all_open_position(self, symbol=None) -> Dict[str, List[Any]]:
+        """
+        Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
+
+        Args:
+            symbol (str, optional): The trading pair symbol to filter the positions (e.g., 'BTC-USD', 'ETH-USD'). 
+                                    If not provided, returns all open positions across all symbols.
+
+        Returns:
+            dict: Positions data containing open positions for the specified symbol or all symbols if not provided.
+
+        """
+        try:
+            if symbol is None:
+                return self.client.private.get_positions(status='OPEN').data
+            
+            elif isinstance(symbol, str):
+                return self.client.private.get_positions(market=symbol, status='OPEN').data
+        
+        except Exception as e:
+            print(f"An error occurred while fetching open positions: {e}")
+            return None
+        
+
+
     def get_klines(self, symbol: str, interval: str):
         """
         Fetch and return candlestick data for a given symbol and interval.

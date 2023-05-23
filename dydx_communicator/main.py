@@ -214,7 +214,6 @@ def execute_strategies(client, detectors, liq_levels):
                             if strategy_function_name == "double_bottom_strat":
                                 signal = strategy_function(df, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-
                             elif strategy_function_name == "double_top_strat":
                                 signal = strategy_function(df, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
                             
