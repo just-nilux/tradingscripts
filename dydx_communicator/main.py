@@ -152,7 +152,7 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
 def fetch_support_resistance(symbol, liq_levels):
 
     # fetch support and resistance levels
-    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'BTC-USD'
+    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'symbol'
 
     # Assign the values to variables
     support_lower = min(liq_data)
