@@ -113,12 +113,12 @@ class SweepDetector:
             if self.invalidation_cnt > self.n_periods_to_confirm_sweep:
                 self.logger.warning(f"Sweep did not happen within {self.n_periods_to_confirm_sweep} periods. Setup invalid.")
                 self.reset()
-                return 'invalid'#None
+                return None
 
             elif self.current_row.Close < self.upper_liq_level and not self.sweep_crossed_with_min_req_pct:
                 self.logger.warning(f"Sweep did not cross UPPER liq. level with the minimum requirement {self.cross_pct_threshold}%")
                 self.reset()
-                return 'invalid' #None
+                return None
 
             elif self.current_row.Close < self.upper_liq_level and self.sweep_crossed_with_min_req_pct and self.invalidation_cnt <= self.n_periods_to_confirm_sweep:
                 self.logger.info(f'UPPER liq. sweep fulfilled at {self.current_row.Index} - Close: {self.current_row.Close}')

@@ -1,5 +1,6 @@
 from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
+from strategies.liq_sweep_detector import SweepDetector
 from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
@@ -109,6 +110,8 @@ def initialize_detectors(client, detectors=None):
                             detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
                         elif strategy_function == "double_top_strat":
                             detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+                        elif strategy_function == "liq_sweep_detector":
+                            detectors[key] = SweepDetector(n_periods_to_confirm_sweep=5, cross_pct_threshold=0.2)
                         else:
                             logging.error(f"Unsupported strategy function: {strategy_function}")
                             continue
@@ -143,6 +146,20 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
     res = detector.detect()
 
     if isinstance(res, tuple) and res[1] == 'BUY':
+        return res
+    return (None, None)
+
+
+def liq_sweep_detector(df, detector, upper_liq_level, lower_liq_level):
+
+    logging.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
+
+    detector.upper_liq_level = upper_liq_level
+    detector.lower_liq_level = lower_liq_level
+    detector.current_row = df.iloc[-1]
+    res = detector.detect()
+
+    if isinstance(res, tuple) and res[1] in ('BUY', 'SELL'):
         return res
     return (None, None)
 
@@ -200,6 +217,9 @@ def execute_strategies(client, detectors, liq_levels):
 
                             elif strategy_function_name == "double_top_strat":
                                 signal = strategy_function(df, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                            
+                            elif strategy_function_name == "liq_sweep_detector":
+                                signal = strategy_function(df, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
                         except Exception as e:
                             print(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
