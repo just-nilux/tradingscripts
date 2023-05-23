@@ -24,7 +24,6 @@ def check_liquidation_zone(data, client):
     Args:
     data (dict): A dictionary with symbols as keys and list of prices as values.
     client (obj): Client object to connect with the server and get market data.
-    config (dict): A configuration dictionary containing 'bot_token' and 'chat_ids'.
     """
 
     for symbol, prices in data.items():
@@ -45,11 +44,11 @@ def update_config_with_symbols(data: defaultdict, client):
     """
     Update the 'symbols' list in each strategy in the client's config with symbols from the provided defaultdict.                                                                            
     Symbols are selected from the defaultdict if their corresponding list has exactly 3 elements.                                                                                            
-    The updated config is then written back to the client's config file.
+    The updated config is then written back to the client's config.json file.
 
     Parameters:
     data (defaultdict): The defaultdict containing symbol data. Keys are symbols, values are lists.                                                                                          
-    client (object): The client object, expected to have 'config' and 'config_file' attributes.                                                                                              
+    client (object): The client object, expected to have 'config.json'.                                                                                              
 
     Returns: True if some symbols have been added, False otherwise
     """
