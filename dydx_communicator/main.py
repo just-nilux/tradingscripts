@@ -15,6 +15,27 @@ import time
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 
 
+def update_config_with_symbols(data: defaultdict, client):
+    """
+    Update the 'symbols' list in each strategy in the client's config with symbols from the provided defaultdict.
+    Symbols are selected from the defaultdict if their corresponding list has exactly 3 elements. 
+    The updated config is then written back to the client's config file.
+
+    Parameters:
+    data (defaultdict): The defaultdict containing symbol data. Keys are symbols, values are lists.
+    client (object): The client object, expected to have 'config' and 'config_file' attributes.
+
+    Returns: None
+    """
+    
+    # Update the symbols in strategies for symbols with length == 3 in defaultdict
+    for strategy in client.config['strategies']:
+        strategy['symbols'] = [k for k, v in data.items() if len(v) == 3]
+
+    # Write back the updated json to file
+    with open(client.config_file, 'w') as json_file:
+        json.dump(client.config, json_file, indent=2)
+
 
 
 def timeframe_to_minutes(timeframe):
@@ -192,6 +213,7 @@ def main():
 
         if res != None:
             liq_levels = res
+            update_config_with_symbols(liq_levels, client)
 
         execute_strategies(client, detectors, liq_levels)
 
