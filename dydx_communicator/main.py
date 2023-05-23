@@ -91,8 +91,10 @@ def timeframe_to_minutes(timeframe):
 
 
 
-def initialize_detectors(client):
-    detectors = {}
+def initialize_detectors(client, detectors=None):
+    if detectors is None:
+        detectors = {}
+
     for strategy in client.config['strategies']:
         symbols = strategy['symbols']
         timeframes = strategy['timeframes']
@@ -103,18 +105,17 @@ def initialize_detectors(client):
                 for strategy_function in strategy_functions:
                     key = f"{symbol}_{timeframe}_{strategy_function}"
                     
-                    if strategy_function == "double_bottom_strat":
-                        detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                    elif strategy_function == "double_top_strat":
-                        detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                    else:
-                        logging.error(f"Unsupported strategy function: {strategy_function}")
-                        continue
+                    if key not in detectors:
+                        if strategy_function == "double_bottom_strat":
+                            detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+                        elif strategy_function == "double_top_strat":
+                            detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+                        else:
+                            logging.error(f"Unsupported strategy function: {strategy_function}")
+                            continue
 
-                    logging.debug(f"Initialized detector for {key}")
-
+                        logging.debug(f"Initialized detector for {key}")
     return detectors
-
 
 
 
@@ -251,7 +252,7 @@ def main():
             liq_levels = res
             symbols_added = update_config_with_symbols(liq_levels, client)
             if symbols_added:
-                detectors = initialize_detectors(client)
+                detectors = initialize_detectors(client, detectors)
 
         execute_strategies(client, detectors, liq_levels)
 
