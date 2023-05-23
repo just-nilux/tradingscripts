@@ -28,7 +28,7 @@ def update_config_with_symbols(data: defaultdict, client):
     Returns: None
     """
     
-    # Update the symbols in strategies for symbols with length == 3 in defaultdict
+    # Update the symbols in strategies for symbols with length == 4 in defaultdict
     for strategy in client.config['strategies']:
         strategy['symbols'] = [k for k, v in data.items() if len(v) == 4]
 
