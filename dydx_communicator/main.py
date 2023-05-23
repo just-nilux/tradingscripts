@@ -35,7 +35,7 @@ def check_liquidation_zone(data, client):
             max_price = max(prices)
 
             if not min_price < current_price < max_price:
-                msg = f'Liq. zone need to be updated for symbol: {symbol}'
+                msg = f'Update Liquidity Zones: {symbol}'
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
                 logging.debug(msg)
 
