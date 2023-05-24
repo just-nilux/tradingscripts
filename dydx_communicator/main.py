@@ -4,10 +4,12 @@ from strategies.liq_sweep_detector import SweepDetector
 from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
-from send_telegram_message import send_telegram_message
+from send_telegram_message import bot_main, send_telegram_message
+
 
 import pandas_ta as ta
 import pandas as pd
+import threading
 import datetime
 import logging
 import json
@@ -248,6 +250,11 @@ def execute_strategies(client, detectors, liq_levels):
 def main():
     logging.info("Initializing detectors")
     client = DydxClient()
+    
+    # Start the bot in a separate thread
+    bot_thread = threading.Thread(target=bot_main, args=(client.config['bot_token'], client))
+    bot_thread.start()
+    
     detectors = initialize_detectors(client)
     
     # .json filepath:
