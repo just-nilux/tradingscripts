@@ -83,15 +83,21 @@ def button(client):
         query.answer()
 
         if query.data == '1':
-            if client.config.get('strategies') and 'symbols' in client.config['strategies'][0]:
-                active_symbols = client.config['strategies'][0]['symbols']
-                text = "\n".join(active_symbols)
-                query.edit_message_text(text=f"Active Symbols: \n{text}")
-            else:
-                query.edit_message_text(text=f"No active symbols found.")
+            if client.config.get('strategies'):
+                strategy = client.config['strategies'][0]
+                if 'symbols' in strategy and 'timeframes' in strategy:
+                    active_symbols = strategy['symbols']
+                    timeframes = strategy['timeframes']
+                    messages = []
+                    for symbol in active_symbols:
+                        message = f"Symbol: {symbol} - Timeframes: {', '.join(timeframes)}"
+                        messages.append(message)
+                    text = "\n".join(messages)
+                    query.edit_message_text(text=f"Active Symbols: \n{text}")
+                else:
+                    query.edit_message_text(text=f"No active symbols or timeframes found.")
 
     return inner_button
-
 
 
 def bot_main(bot_token: str, client) -> None:
