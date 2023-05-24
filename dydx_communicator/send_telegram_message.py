@@ -96,13 +96,16 @@ def button(client):
                     query.edit_message_text(text=f"Active Symbols: \n{text}")
                 else:
                     query.edit_message_text(text=f"No active symbols or timeframes found.")
-        
-        elif query.data == '2':  # Add this block
+        elif query.data == '2':
             if client.config.get('strategies'):
                 strategy = client.config['strategies'][0]
                 if 'strategy_functions' in strategy:
                     active_strategies = strategy['strategy_functions']
-                    text = ", ".join(active_strategies)
+                    messages = []
+                    for strategy_func in active_strategies:
+                        message = f"- {strategy_func.replace('_', ' ').title()}"
+                        messages.append(message)
+                    text = "\n".join(messages)
                     query.edit_message_text(text=f"Active Strategies: \n{text}")
                 else:
                     query.edit_message_text(text=f"No active strategies found.")
