@@ -247,23 +247,12 @@ def execute_strategies(client, detectors, liq_levels):
 
 
 
-def main():
-    logging.info("Initializing detectors")
-    client = DydxClient()
-    
-    # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=bot_main, args=(client.config['bot_token'], client))
-    bot_thread.start()
-    
+
+def execute_main(client, json_file_path, liq_levels, detectors):
     detectors = initialize_detectors(client)
-    
-    # .json filepath:
-    json_file_path = '/opt/tvserver/database.json'
-    
+
     # Initialize the last hash as an empty string
     process_json_file.last_hash = ''
-
-    liq_levels = defaultdict(list)
 
     while True:
         # Get the current time
@@ -289,11 +278,24 @@ def main():
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
         logging.debug("Sleeping untill next minute")
-        
+
         # Sleep for 1 second to ensure it runs at the beginning of the minute
         time.sleep(1)
 
 
+def main():
+    logging.info("Initializing detectors")
+    client = DydxClient()
+
+    # Start the bot in a separate thread
+    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list), initialize_detectors(client)))
+    bot_thread.start()
+
+    # Run the bot in the main thread
+    bot_main(client.config['bot_token'], client)
+
+
 if __name__ == '__main__':
     main()
+
 
