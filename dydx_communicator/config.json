@@ -11,13 +11,16 @@
   },
   "strategies": [
     {
-      "symbols": ["ETH-USD"],
+      "symbols": [],
       "timeframes": ["1MIN", "1HOUR", "4HOURS"],
-      "strategy_functions": ["double_bottom_strat","double_top_strat"],
+      "strategy_functions": ["double_bottom_strat","double_top_strat", "liq_sweep_detector"],
       "risk_to_reward_ratio": 2
     }
-  ]
+  ],
+  "bot_token": "5951325673:AAGvqkhnogQGZPsg8B72xChi5FRsjTEbeDk",
+  "chat_ids": ["470493359", "440808223"]
 }
+
 
 
 

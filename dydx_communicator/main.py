@@ -1,11 +1,15 @@
 from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
+from strategies.liq_sweep_detector import SweepDetector
 from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
+from send_telegram_message import bot_main, send_telegram_message
+
 
 import pandas_ta as ta
 import pandas as pd
+import threading
 import datetime
 import logging
 import json
@@ -13,6 +17,61 @@ import time
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
+
+
+def check_liquidation_zone(data, client):
+    """
+    Check the liquidation zone for each symbol in the data and send a 
+    Telegram message if the current price is outside the provided zone.
+
+    Args:
+    data (dict): A dictionary with symbols as keys and list of prices as values.
+    client (obj): Client object to connect with the server and get market data.
+    """
+
+    for symbol, prices in data.items():
+        if len(prices) == 4:
+            market = client.client.public.get_markets(market=symbol).data['markets'][symbol]
+            current_price = float(market['oraclePrice'])
+            min_price = min(prices)
+            max_price = max(prices)
+
+            if not min_price < current_price < max_price:
+                msg = f'Update Liquidity Zones: {symbol}'
+                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+                logging.debug(msg)
+
+
+
+def update_config_with_symbols(data: defaultdict, client):
+    """
+    Update the 'symbols' list in each strategy in the client's config with symbols from the provided defaultdict.                                                                            
+    Symbols are selected from the defaultdict if their corresponding list has exactly 3 elements.                                                                                            
+    The updated config is then written back to the client's config.json file.
+
+    Parameters:
+    data (defaultdict): The defaultdict containing symbol data. Keys are symbols, values are lists.                                                                                          
+    client (object): The client object, expected to have 'config.json'.                                                                                              
+
+    Returns: True if some symbols have been added, False otherwise
+    """
+    
+    symbols_added = False
+
+    # Update the symbols in strategies for symbols with length == 4 in defaultdict
+    for strategy in client.config['strategies']:
+        new_symbols = [k for k, v in data.items() if len(v) == 4]
+        if set(new_symbols) != set(strategy['symbols']):
+            strategy['symbols'] = new_symbols
+            symbols_added = True
+
+    # Write back the updated json to file
+    if symbols_added:
+        with open("config.json", 'w') as json_file:
+            json.dump(client.config, json_file, indent=2)
+
+    return symbols_added
+
 
 
 
@@ -34,8 +93,10 @@ def timeframe_to_minutes(timeframe):
 
 
 
-def initialize_detectors(client):
-    detectors = {}
+def initialize_detectors(client, detectors=None):
+    if detectors is None:
+        detectors = {}
+
     for strategy in client.config['strategies']:
         symbols = strategy['symbols']
         timeframes = strategy['timeframes']
@@ -46,18 +107,19 @@ def initialize_detectors(client):
                 for strategy_function in strategy_functions:
                     key = f"{symbol}_{timeframe}_{strategy_function}"
                     
-                    if strategy_function == "double_bottom_strat":
-                        detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                    elif strategy_function == "double_top_strat":
-                        detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                    else:
-                        logging.error(f"Unsupported strategy function: {strategy_function}")
-                        continue
+                    if key not in detectors:
+                        if strategy_function == "double_bottom_strat":
+                            detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+                        elif strategy_function == "double_top_strat":
+                            detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
+                        elif strategy_function == "liq_sweep_detector":
+                            detectors[key] = SweepDetector(n_periods_to_confirm_sweep=5, cross_pct_threshold=0.2)
+                        else:
+                            logging.error(f"Unsupported strategy function: {strategy_function}")
+                            continue
 
-                    logging.debug(f"Initialized detector for {key}")
-
+                        logging.debug(f"Initialized detector for {key}")
     return detectors
-
 
 
 
@@ -90,16 +152,33 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
     return (None, None)
 
 
+def liq_sweep_detector(df, detector, upper_liq_level, lower_liq_level):
 
-def fetch_support_resistance(symbol):
-    # implement sup / rest levels from .json:
-    # Dummy data for now...
+    logging.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
 
-    print(symbol)
-    support_upper = 100000
-    support_lower = 100
-    resistance_upper = 120000
-    resistance_lower = 110
+    detector.upper_liq_level = upper_liq_level
+    detector.lower_liq_level = lower_liq_level
+    detector.current_row = df.iloc[-1]
+    res = detector.detect()
+
+    if isinstance(res, tuple) and res[1] in ('BUY', 'SELL'):
+        return res
+    return (None, None)
+
+
+
+def fetch_support_resistance(symbol, liq_levels):
+
+    # fetch support and resistance levels
+    liq_data = liq_levels[symbol]  # Retrieve the list of values for 'symbol'
+
+    # Assign the values to variables
+    support_lower = min(liq_data)
+    support_upper = sorted(liq_data)[1]  # Second lowest value
+
+    resistance_upper = max(liq_data)
+    resistance_lower = sorted(liq_data)[-2]  # Second highest value
+
 
     return support_upper, support_lower, resistance_upper, resistance_lower
 
@@ -121,9 +200,10 @@ def execute_strategies(client, detectors, liq_levels):
                 if not (minutes % timeframe_minutes):
                     # fordi at [:-1] er nyeste ikke lukket candle.
                     df = client.get_klines(symbol, timeframe)[:-1]
+
+                    # fetch support and resistance levels
+                    support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
                     
-                    # Calculate support and resistance levels
-                    support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol)
                     
                     for strategy_function_name in strategy['strategy_functions']:
                         strategy_function = globals()[strategy_function_name]
@@ -136,9 +216,11 @@ def execute_strategies(client, detectors, liq_levels):
                             if strategy_function_name == "double_bottom_strat":
                                 signal = strategy_function(df, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-
                             elif strategy_function_name == "double_top_strat":
                                 signal = strategy_function(df, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                            
+                            elif strategy_function_name == "liq_sweep_detector":
+                                signal = strategy_function(df, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
                         except Exception as e:
                             print(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
@@ -168,6 +250,11 @@ def execute_strategies(client, detectors, liq_levels):
 def main():
     logging.info("Initializing detectors")
     client = DydxClient()
+    
+    # Start the bot in a separate thread
+    bot_thread = threading.Thread(target=bot_main, args=(client.config['bot_token'], client))
+    bot_thread.start()
+    
     detectors = initialize_detectors(client)
     
     # .json filepath:
@@ -190,10 +277,15 @@ def main():
 
         res = process_json_file(json_file_path)
 
-        if res != None:
+        if res is not None:
             liq_levels = res
+            symbols_added = update_config_with_symbols(liq_levels, client)
+            if symbols_added:
+                detectors = initialize_detectors(client, detectors)
 
         execute_strategies(client, detectors, liq_levels)
+
+        check_liquidation_zone(liq_levels, client)
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
         logging.debug("Sleeping untill next minute")
