@@ -3,4 +3,5 @@ dydx_v3_python
 pandas
 pandas_ta
 websockets
-python-telegram-bot
+python-telegram-bot==13.7
+dataclasses
