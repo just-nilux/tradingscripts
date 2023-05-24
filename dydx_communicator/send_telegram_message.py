@@ -64,10 +64,10 @@ def send_telegram_message(bot_token: str, chat_ids: list, text: str):
         return None
 
 
-
 def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [InlineKeyboardButton("Active Symbols", callback_data='1')],
+        [InlineKeyboardButton("Active Strategies", callback_data='2')], # Add this line
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -96,8 +96,19 @@ def button(client):
                     query.edit_message_text(text=f"Active Symbols: \n{text}")
                 else:
                     query.edit_message_text(text=f"No active symbols or timeframes found.")
+        
+        elif query.data == '2':  # Add this block
+            if client.config.get('strategies'):
+                strategy = client.config['strategies'][0]
+                if 'strategy_functions' in strategy:
+                    active_strategies = strategy['strategy_functions']
+                    text = ", ".join(active_strategies)
+                    query.edit_message_text(text=f"Active Strategies: \n{text}")
+                else:
+                    query.edit_message_text(text=f"No active strategies found.")
 
     return inner_button
+
 
 
 def bot_main(bot_token: str, client) -> None:
