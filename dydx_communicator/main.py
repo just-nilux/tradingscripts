@@ -130,10 +130,10 @@ def double_top_strat(df, detector, ressist_zone_upper, ressist_zone_lower):
     detector.resistance_zone_upper = ressist_zone_upper
     detector.resistance_zone_lower = ressist_zone_lower
     detector.current_row = df.iloc[-1]
-    side = detector.detect()
+    res = detector.detect()
 
-    if isinstance(side, tuple) and side[1] == 'SELL':
-        return side
+    if isinstance(res, tuple) and res[1] == 'SELL':
+        return res
     return (None, None)
 
 
