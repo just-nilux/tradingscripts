@@ -83,9 +83,13 @@ def button(client):
         query.answer()
 
         if query.data == '1':
-            active_symbols = client.config['symbols']
-            text = "\n".join(active_symbols)
-            query.edit_message_text(text=f"Active Symbols: \n{text}")
+            if client.config.get('strategies') and 'symbols' in client.config['strategies'][0]:
+                active_symbols = client.config['strategies'][0]['symbols']
+                text = "\n".join(active_symbols)
+                query.edit_message_text(text=f"Active Symbols: \n{text}")
+            else:
+                query.edit_message_text(text=f"No active symbols found.")
+
     return inner_button
 
 
