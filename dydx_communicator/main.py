@@ -200,7 +200,7 @@ def execute_strategies(client, detectors, liq_levels, all_symbol_df):
                 if not (minutes % timeframe_minutes):
 
                     df = all_symbol_df[(symbol, timeframe)]
-
+                    print(df)
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
                     
