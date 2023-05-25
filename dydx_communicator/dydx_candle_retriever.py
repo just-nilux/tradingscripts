@@ -2,57 +2,93 @@ import asyncio
 import aiohttp
 import sys
 from datetime import datetime, timedelta
-from dydx3 import Client
-from web3 import Web3
+from typing import Dict, Any, List
+from logger_setup import setup_logger
 
+
+# https://github.com/encode/httpx/issues/914
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-class CandleRetriever:
-    DURATIONS = {
-        '1MIN': 60,
-        '5MINS': 5 * 60,
-        '30MINS': 30 * 60,
-        '15MINS': 15 * 60,
-        '1HOUR': 60 * 60,
-        '4HOURS': 60 * 60 * 4,
-        '1DAY': 60 * 60 * 24
-    }
-    
-    BASE_URL = "https://api.dydx.exchange"
-    CONCURRENT_LIMIT = 20
+from dydx3 import Client
+from web3 import Web3
 
-    def __init__(self, symbols, limit, timeframe):
-        self.symbols = symbols
-        self.limit = limit
-        self.timeframe = timeframe
-        self.semaphore = asyncio.Semaphore(self.CONCURRENT_LIMIT)
+durations = {
+    '1MIN': 60,
+    '5MINS': 5 * 60,
+    '30MINS': 30 * 60,
+    '15MINS': 15 * 60,
+    '1HOUR': 60 * 60,
+    '4HOURS': 60 * 60 * 4,
+    '1DAY': 60 * 60 * 24
+}
 
-    async def get_klines_async(self, session, symbol):
-        async with self.semaphore, session.get(
-                f"{self.BASE_URL}/v3/candles/{symbol}",
-                params={'resolution': self.timeframe, 'limit': self.limit + 1}
-        ) as resp:
+CONCURRENT_LIMIT = 20  # run at most this amount of requests at the same time
+BASE_URL = "https://api.dydx.exchange"
+logger = setup_logger(__name__)
+
+
+async def get_klines_async(
+    sem: asyncio.locks.Semaphore,
+    session: aiohttp.ClientSession,
+    symbol: str,
+    timeframe: str = '1h'
+) -> Dict[str, Any]:
+
+    async with sem:
+        try:
+            logger.info(f"Retrieving {symbol}")
+
+            # https://api.dydx.exchange/v3/candles/BTC-USD?limit=5&resolution=1MIN
+            candle_endpoint = f"{BASE_URL}/v3/candles/{symbol}"
+
+            resp = await session.request('GET', url=candle_endpoint, params={'resolution': timeframe, 'limit': 2})
             response_json = await resp.json()
-            candle = self.find_latest_closed_candle(response_json["candles"])
-            return symbol, candle
+            candles = response_json["candles"]
 
-    @staticmethod
-    def find_latest_closed_candle(candles):
-        latest_closed_candle = None
-        latest_closed_candle_start = None
-        for candle in candles:
-            candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
-            candle_end = candle_start + timedelta(seconds=CandleRetriever.DURATIONS[timeframe])
+            # find latest closed candle
+            latest_closed_candle = None
+            latest_closed_candle_start = None
+            for candle in candles:
+                candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                candle_end = candle_start + timedelta(seconds=durations[timeframe])
 
-            now = datetime.now(tz=candle_end.tzinfo)
-            if now >= candle_end and (latest_closed_candle_start is None or latest_closed_candle_start < candle_start):
-                latest_closed_candle = candle
-                latest_closed_candle_start = candle_start
+                now = datetime.now(tz=candle_end.tzinfo)
 
-        return latest_closed_candle
+                if now > candle_end and (latest_closed_candle is None or candle_start > latest_closed_candle_start):
+                    latest_closed_candle = candle
+                    latest_closed_candle_start = candle_start
 
-    async def get_all(self):
-        async with aiohttp.ClientSession(trust_env=True) as session:
-            tasks = [self.get_klines_async(session, symbol) for symbol in self.symbols]
-            return await asyncio.gather(*tasks, return_exceptions=True)
+            return symbol, latest_closed_candle
+
+        except Exception as e:
+            logger.error(f"Error occurred while retrieving {symbol}: {str(e)}")
+            return symbol, None
+
+
+async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Retrieves the latest closed candles for all symbols and timeframes.
+    """
+    sem = asyncio.Semaphore(CONCURRENT_LIMIT)
+    async with aiohttp.ClientSession() as session:
+        tasks = {get_klines_async(sem, session, symbol, timeframe=timeframe): (symbol, timeframe) 
+                 for symbol in symbols
+                 for timeframe in timeframes}
+        results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
+
+        candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
+        return candles
+
+
+#async def get_all(symbols: List[str], timeframe: str = '1h') -> Dict[str, Dict[str, Any]]:
+#    """
+#    Retrieves the latest closed candles for all symbols.
+#    """
+#    sem = asyncio.Semaphore(CONCURRENT_LIMIT)
+#    async with aiohttp.ClientSession() as session:
+#        tasks = {get_klines_async(sem, session, symbol, timeframe=timeframe): symbol for symbol in symbols}
+#        results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
+#
+#        candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
+#        return candles

@@ -6,9 +6,9 @@ from DydxClient import DydxClient
 from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
 from logger_setup import setup_logger
+from dydx_retriever import get_all
 
-
-
+import asyncio
 import pandas_ta as ta
 import pandas as pd
 import threading
@@ -17,7 +17,6 @@ import json
 import time
 
 logger = setup_logger(__name__)
-
 
 
 def check_liquidation_zone(data, client):
@@ -186,7 +185,7 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
-def execute_strategies(client, detectors, liq_levels):
+def execute_strategies(client, detectors, liq_levels, all_symbol_df):
     current_time = datetime.datetime.now()
     minutes = current_time.minute
 
@@ -199,8 +198,8 @@ def execute_strategies(client, detectors, liq_levels):
                 timeframe_minutes = timeframe_to_minutes(timeframe)
 
                 if not (minutes % timeframe_minutes):
-                    # fordi at [:-1] er nyeste ikke lukket candle.
-                    df = client.get_klines(symbol, timeframe)[:-1]
+
+                    df = all_symbol_df[(symbol, timeframe)]
 
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
@@ -273,7 +272,14 @@ def execute_main(client, json_file_path, liq_levels, detectors):
             if symbols_added:
                 detectors = initialize_detectors(client, detectors)
 
-        execute_strategies(client, detectors, liq_levels)
+        # create unique sets of all symbols and timeframes
+        all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
+        all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
+
+        # fetch symbol data
+        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
+
+        execute_strategies(client, detectors, liq_levels, all_symbol_df)
 
         check_liquidation_zone(liq_levels, client)
 
