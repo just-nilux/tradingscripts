@@ -64,7 +64,7 @@ class DoubleBottomDetector:
         self.invalidation_period_cnt: int = 0
         self.candle_counter: int = 0
 
-        self.logger = self.setup_logger()
+        self.logger = setup_logger(__name__)
 
 
 
