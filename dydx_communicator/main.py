@@ -276,8 +276,13 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
 
-        # fetch symbol data
-        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
+        # for python 3.6
+        loop = asyncio.get_event_loop()
+        all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
+
+
+        # fetch symbol data - when python have been updated to at least 3.7:
+        #all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
 
         execute_strategies(client, detectors, liq_levels, all_symbol_df)
 
