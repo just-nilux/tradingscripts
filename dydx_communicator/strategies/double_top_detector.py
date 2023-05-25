@@ -1,6 +1,7 @@
-import logging
-import pandas as pd
 from typing import Tuple, Union, Optional
+from logger_setup import setup_logger
+import pandas as pd
+
 
 class DoubleTopDetector:
 
@@ -40,26 +41,6 @@ class DoubleTopDetector:
 
             "res": timestamp of the triggercandle.
         """
-
-    @staticmethod
-    def setup_logger() -> logging.Logger:
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-
-        fh = logging.FileHandler('resistance_zone_detector.log')
-        fh.setLevel(logging.DEBUG)
-
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        ch.setFormatter(formatter)
-
-        logger.addHandler(fh)
-        logger.addHandler(ch)
-        return logger
-
 
 
     def __init__(self, n_periods_to_confirm_swing: int, invalidation_n: int) -> None:

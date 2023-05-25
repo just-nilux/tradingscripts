@@ -28,7 +28,6 @@ class SweepDetector:
         self.logger = setup_logger(__name__)
 
 
-
     def reset(self) -> None:
         self.cross_of_upper_liq = False
         self.cross_of_lower_liq = False

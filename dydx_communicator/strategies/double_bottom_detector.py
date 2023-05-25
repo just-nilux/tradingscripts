@@ -1,6 +1,7 @@
-import logging
-import pandas as pd
 from typing import Tuple, Union, Optional
+from logger_setup import setup_logger
+import pandas as pd
+
 
 
 
@@ -42,34 +43,6 @@ class DoubleBottomDetector:
 
             "res": timestamp of the triggercandle.
     """
-
-    @staticmethod
-    def setup_logger() -> logging.Logger:
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-
-        # create file handler which logs even debug messages
-        fh = logging.FileHandler('support_zone_detector.log')
-        fh.setLevel(logging.DEBUG)
-
-        # create console handler with a lower log level
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        ch.setFormatter(formatter)
-
-        # add the handlers to the logger
-        logger.addHandler(fh)
-        logger.addHandler(ch)
-        return logger
-    
-
-
-       
-
 
 
     def __init__(self, n_periods_to_confirm_swing: int, invalidation_n: int) -> None:
