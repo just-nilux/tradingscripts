@@ -5,18 +5,19 @@ from collections import defaultdict
 from DydxClient import DydxClient
 from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
+from logger_setup import setup_logger
+
 
 
 import pandas_ta as ta
 import pandas as pd
 import threading
 import datetime
-import logging
 import json
 import time
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = setup_logger(__name__)
+
 
 
 def check_liquidation_zone(data, client):
@@ -39,7 +40,7 @@ def check_liquidation_zone(data, client):
             if not min_price < current_price < max_price:
                 msg = f'Update Liquidity Zones: {symbol}'
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
-                logging.debug(msg)
+                logger.debug(msg)
 
 
 
@@ -115,17 +116,17 @@ def initialize_detectors(client, detectors=None):
                         elif strategy_function == "liq_sweep_detector":
                             detectors[key] = SweepDetector(n_periods_to_confirm_sweep=5, cross_pct_threshold=0.2)
                         else:
-                            logging.error(f"Unsupported strategy function: {strategy_function}")
+                            logger.error(f"Unsupported strategy function: {strategy_function}")
                             continue
 
-                        logging.debug(f"Initialized detector for {key}")
+                        logger.debug(f"Initialized detector for {key}")
     return detectors
 
 
 
 def double_top_strat(df, detector, ressist_zone_upper, ressist_zone_lower):
 
-    logging.debug(f"Executing double top strategy for detector {detector}")
+    logger.debug(f"Executing double top strategy for detector {detector}")
 
     detector.resistance_zone_upper = ressist_zone_upper
     detector.resistance_zone_lower = ressist_zone_lower
@@ -140,7 +141,7 @@ def double_top_strat(df, detector, ressist_zone_upper, ressist_zone_lower):
 
 def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
 
-    logging.debug(f"Executing double bottom strategy for detector {detector}")
+    logger.debug(f"Executing double bottom strategy for detector {detector}")
 
     detector.support_zone_upper = support_zone_upper
     detector.support_zone_lower = support_zone_lower
@@ -154,7 +155,7 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
 
 def liq_sweep_detector(df, detector, upper_liq_level, lower_liq_level):
 
-    logging.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
+    logger.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
 
     detector.upper_liq_level = upper_liq_level
     detector.lower_liq_level = lower_liq_level
@@ -212,7 +213,7 @@ def execute_strategies(client, detectors, liq_levels):
 
 
                         try:
-                            logging.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
+                            logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
                             if strategy_function_name == "double_bottom_strat":
                                 signal = strategy_function(df, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
@@ -224,26 +225,26 @@ def execute_strategies(client, detectors, liq_levels):
 
                         except Exception as e:
                             print(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
-                            logging.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
+                            logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
                        
                         try:
                             
                             if signal[1] in ('SELL', 'BUY'):
-                                logging.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
+                                logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
 
                                 size = float(client.order_size(symbol, client.config['position_size']))
-                                logging.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
+                                logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                                 
                                 atr = ta.atr(df.High, df.Low, df.Close, length=14).iloc[-1]
                                 order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr, trigger_candle=signal[0])
 
                             elif signal[1] is None:
-                                logging.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
+                                logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                             else:
-                                logging.warning(f"Invalid signal: {signal[1]}")
+                                logger.warning(f"Invalid signal: {signal[1]}")
 
                         except Exception as e:
-                            logging.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
+                            logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
 
 
 
@@ -277,14 +278,14 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         check_liquidation_zone(liq_levels, client)
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
-        logging.debug("Sleeping untill next minute")
+        logger.debug("Sleeping untill next minute")
 
         # Sleep for 1 second to ensure it runs at the beginning of the minute
         time.sleep(1)
 
 
 def main():
-    logging.info("Initializing detectors")
+    logger.info("Initializing detectors")
     client = DydxClient()
 
     # Start the bot in a separate thread

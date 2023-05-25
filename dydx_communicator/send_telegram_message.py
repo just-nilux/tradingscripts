@@ -4,18 +4,15 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from telegram import Update
+from logger_setup import setup_logger
+
 import threading
 import requests
 import datetime
 import pytz
 import logging
 
-# other necessary imports...
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                     level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+logger = setup_logger(__name__)
 
 
 def send_telegram_message(bot_token: str, chat_ids: list, text: str):
@@ -55,7 +52,7 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
 
-    
+
 def process_response(update: Update, context: CallbackContext):
     client = context.bot_data['client']
 
