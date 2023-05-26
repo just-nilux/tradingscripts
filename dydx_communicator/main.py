@@ -301,6 +301,8 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         #all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        print(all_symbols)
+        print(all_timeframes)
         all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
 
         print(all_symbol_df)

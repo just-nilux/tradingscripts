@@ -185,3 +185,11 @@
 2023-05-26 10:23:44,295 - __main__ - ERROR - Error occurred while retrieving S: 'candles'
 2023-05-26 10:23:44,295 - __main__ - ERROR - Error occurred while retrieving -: 'candles'
 2023-05-26 10:23:57,117 - __main__ - INFO - Retrieving BTC-USD
+2023-05-26 10:33:07,940 - __main__ - INFO - Retrieving ETH-USD
+2023-05-26 10:33:07,940 - __main__ - INFO - Retrieving ETH-USD
+2023-05-26 10:33:07,941 - __main__ - INFO - Retrieving BTC-USD
+2023-05-26 10:33:07,941 - __main__ - INFO - Retrieving BTC-USD
+2023-05-26 10:34:10,200 - __main__ - INFO - Retrieving ETH-USD
+2023-05-26 10:34:10,201 - __main__ - INFO - Retrieving ETH-USD
+2023-05-26 10:34:10,201 - __main__ - INFO - Retrieving BTC-USD
+2023-05-26 10:34:10,201 - __main__ - INFO - Retrieving BTC-USD
