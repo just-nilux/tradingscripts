@@ -51,6 +51,7 @@ async def get_klines_async(
             latest_closed_candle = None
             latest_closed_candle_start = None
             for candle in candles:
+                print('Before')
                 candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
                 candle_end = candle_start + timedelta(seconds=durations[timeframe])
                 print('HOLA')
