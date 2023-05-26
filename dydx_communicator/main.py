@@ -307,8 +307,8 @@ def execute_main(client, json_file_path, liq_levels, detectors):
 
         # fetch symbol data - when python have been updated to at least 3.7:
         #all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
-
-        execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
+        if client.config['strategies'][0]['symbols']:
+            execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
 
         check_liquidation_zone(liq_levels, client)
 
