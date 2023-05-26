@@ -2,6 +2,7 @@ connectors
 dydx_v3_python
 pandas
 pandas_ta
+talipp
 websockets
 python-telegram-bot==13.7
 dataclasses

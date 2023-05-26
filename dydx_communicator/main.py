@@ -7,6 +7,8 @@ from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
 from logger_setup import setup_logger
 from dydx_candle_retriever import get_all
+from talipp.indicators import ATR
+
 
 import asyncio
 import pandas_ta as ta
@@ -93,9 +95,12 @@ def timeframe_to_minutes(timeframe):
 
 
 
-def initialize_detectors(client, detectors=None):
+def initialize_detectors(client, detectors=None, atrs=None):
     if detectors is None:
         detectors = {}
+
+    if atrs is None:
+        atrs = {}
 
     for strategy in client.config['strategies']:
         symbols = strategy['symbols']
@@ -104,6 +109,11 @@ def initialize_detectors(client, detectors=None):
 
         for symbol in symbols:
             for timeframe in timeframes:
+                key = f"{symbol}_{timeframe}"
+
+                if key not in atrs:
+                    atrs[key] = ATR(14)
+
                 for strategy_function in strategy_functions:
                     key = f"{symbol}_{timeframe}_{strategy_function}"
                     
@@ -119,17 +129,19 @@ def initialize_detectors(client, detectors=None):
                             continue
 
                         logger.debug(f"Initialized detector for {key}")
-    return detectors
+
+    return detectors, atrs
 
 
 
-def double_top_strat(df, detector, ressist_zone_upper, ressist_zone_lower):
+
+def double_top_strat(last_closed_candle, detector, ressist_zone_upper, ressist_zone_lower):
 
     logger.debug(f"Executing double top strategy for detector {detector}")
 
     detector.resistance_zone_upper = ressist_zone_upper
     detector.resistance_zone_lower = ressist_zone_lower
-    detector.current_row = df.iloc[-1]
+    detector.current_row = last_closed_candle
     res = detector.detect()
 
     if isinstance(res, tuple) and res[1] == 'SELL':
@@ -138,13 +150,13 @@ def double_top_strat(df, detector, ressist_zone_upper, ressist_zone_lower):
 
 
 
-def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
+def double_bottom_strat(last_closed_candle, detector, support_zone_upper, support_zone_lower):
 
     logger.debug(f"Executing double bottom strategy for detector {detector}")
 
     detector.support_zone_upper = support_zone_upper
     detector.support_zone_lower = support_zone_lower
-    detector.current_row = df.iloc[-1]
+    detector.current_row = last_closed_candle
     res = detector.detect()
 
     if isinstance(res, tuple) and res[1] == 'BUY':
@@ -152,13 +164,13 @@ def double_bottom_strat(df, detector, support_zone_upper, support_zone_lower):
     return (None, None)
 
 
-def liq_sweep_detector(df, detector, upper_liq_level, lower_liq_level):
+def liq_sweep_detector(last_closed_candle, detector, upper_liq_level, lower_liq_level):
 
     logger.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
 
     detector.upper_liq_level = upper_liq_level
     detector.lower_liq_level = lower_liq_level
-    detector.current_row = df.iloc[-1]
+    detector.current_row = last_closed_candle
     res = detector.detect()
 
     if isinstance(res, tuple) and res[1] in ('BUY', 'SELL'):
@@ -185,7 +197,7 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
-def execute_strategies(client, detectors, liq_levels, all_symbol_df):
+def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
     current_time = datetime.datetime.now()
     minutes = current_time.minute
 
@@ -199,8 +211,17 @@ def execute_strategies(client, detectors, liq_levels, all_symbol_df):
 
                 if not (minutes % timeframe_minutes):
 
-                    df = all_symbol_df[(symbol, timeframe)]
-                    print(df)
+                    last_closed_candle = all_symbol_df[(symbol, timeframe)]
+                    print(last_closed_candle)
+
+                    atr = atrs[f"{symbol}_{timeframe}"]
+                    atr.add_input_value(last_closed_candle)
+                    if not atr:
+                        logger.error(f"ATR not available for {symbol} on {timeframe}")
+                        return
+                    print(atr)
+
+
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
                     
@@ -214,13 +235,13 @@ def execute_strategies(client, detectors, liq_levels, all_symbol_df):
                         try:
                             logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
                             if strategy_function_name == "double_bottom_strat":
-                                signal = strategy_function(df, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
+                                signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
                             elif strategy_function_name == "double_top_strat":
-                                signal = strategy_function(df, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                                signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
                             
                             elif strategy_function_name == "liq_sweep_detector":
-                                signal = strategy_function(df, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
+                                signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
                         except Exception as e:
                             print(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
@@ -234,8 +255,7 @@ def execute_strategies(client, detectors, liq_levels, all_symbol_df):
                                 size = float(client.order_size(symbol, client.config['position_size']))
                                 logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                                 
-                                atr = ta.atr(df.High, df.Low, df.Close, length=14).iloc[-1]
-                                order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr, trigger_candle=signal[0])
+                                order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
 
                             elif signal[1] is None:
                                 logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
@@ -249,7 +269,7 @@ def execute_strategies(client, detectors, liq_levels, all_symbol_df):
 
 
 def execute_main(client, json_file_path, liq_levels, detectors):
-    detectors = initialize_detectors(client)
+    detectors, atrs = initialize_detectors(client)
 
     # Initialize the last hash as an empty string
     process_json_file.last_hash = ''
@@ -270,7 +290,7 @@ def execute_main(client, json_file_path, liq_levels, detectors):
             liq_levels = res
             symbols_added = update_config_with_symbols(liq_levels, client)
             if symbols_added:
-                detectors = initialize_detectors(client, detectors)
+                detectors, atrs = initialize_detectors(client, detectors, atrs)
 
         # create unique sets of all symbols and timeframes
         all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
@@ -288,7 +308,7 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         # fetch symbol data - when python have been updated to at least 3.7:
         #all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
 
-        execute_strategies(client, detectors, liq_levels, all_symbol_df)
+        execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
 
         check_liquidation_zone(liq_levels, client)
 

@@ -1,3 +1,4 @@
+import pandas as pd
 import asyncio
 import aiohttp
 import sys
@@ -33,7 +34,7 @@ async def get_klines_async(
     session: aiohttp.ClientSession,
     symbol: str,
     timeframe: str = '1h'
-) -> Dict[str, Any]:
+) -> pd.Series:
 
     async with sem:
         try:
@@ -58,12 +59,18 @@ async def get_klines_async(
                 if now > candle_end and (latest_closed_candle is None or candle_start > latest_closed_candle_start):
                     latest_closed_candle = candle
                     latest_closed_candle_start = candle_start
+            
+            # Create a pandas Series from the latest closed candle
+            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
+            data = {'Open': float(latest_closed_candle['open']), 'High': float(latest_closed_candle['high']), 'Low': float(latest_closed_candle['low']), 'Close': float(latest_closed_candle['close']), 'Volume': float(latest_closed_candle['usdVolume'])}
+            latest_closed_candle = pd.Series(data, name=formatted_timestamp)
 
             return symbol, latest_closed_candle
 
         except Exception as e:
             logger.error(f"Error occurred while retrieving {symbol}: {str(e)}")
             return symbol, None
+
 
 
 async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[str, Any]]:
@@ -77,7 +84,9 @@ async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[s
                  for timeframe in timeframes}
         results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
 
-        candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
+        #candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
+        candles = {tasks[task]: result[1] for task, result in zip(tasks.keys(), results) if result is not None}
+
         return candles
 
 
