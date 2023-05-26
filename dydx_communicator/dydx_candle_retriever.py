@@ -61,7 +61,7 @@ async def get_klines_async(
                     latest_closed_candle_start = candle_start
             
             # Create a pandas Series from the latest closed candle
-            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
+            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
             data = {'Open': float(latest_closed_candle['open']), 'High': float(latest_closed_candle['high']), 'Low': float(latest_closed_candle['low']), 'Close': float(latest_closed_candle['close']), 'Volume': float(latest_closed_candle['usdVolume'])}
             latest_closed_candle = pd.Series(data, name=formatted_timestamp)
 
