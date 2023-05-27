@@ -98,7 +98,7 @@ def process_response(update: Update, context: CallbackContext):
     elif response == 'Account Equity':
         acc_equity = client.fetch_free_equity()
         if acc_equity is not None:
-            update.message.reply_text(text=f"Account Equity: {round(acc_equity,1)}")
+            update.message.reply_text(text=f"Account Equity: {round(acc_equity,1)}$")
         else:
             update.message.reply_text(text="Failed to fetch account equity.")
 
