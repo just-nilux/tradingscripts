@@ -5,7 +5,6 @@ import pandas as pd
 from time import time
 from time import sleep
 from dydx3 import Client
-from web3.auto import w3
 from typing import Tuple, List, Dict, Any
 from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
@@ -26,7 +25,7 @@ class DydxClient:
         self.secret_key = self.config['dydx_api_secret']
         self.passphrase = self.config['dydx_passphrase']
         self.stark_private_key = self.config['dydx_stark_private_key']
-        self.default_ethereum_address = w3.eth.account.from_key(self.stark_private_key).address #self.config['dydx_default_ethereum_address']
+        self.default_ethereum_address = self.config['dydx_default_ethereum_address']
 
         self.logger = setup_logger(__name__)
 
