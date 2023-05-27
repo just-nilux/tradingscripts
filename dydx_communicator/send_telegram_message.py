@@ -46,7 +46,8 @@ def start(update: Update, context: CallbackContext) -> None:
     
     keyboard = [
         ["Active Symbols"],
-        ["Active Strategies"]
+        ["Active Strategies"],
+        ["Open Positions"],
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard)
@@ -89,7 +90,7 @@ def process_response(update: Update, context: CallbackContext):
             else:
                 update.message.reply_text(text=f"No active strategies found.")
 
-    elif response == "Open Positions":
+    elif response == 'Open Positions':
         positions = client.fetch_all_open_position()
         update.message.reply_text(text=positions)
         
