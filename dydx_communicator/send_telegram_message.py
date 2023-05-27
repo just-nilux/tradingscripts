@@ -115,7 +115,7 @@ def process_response(update: Update, context: CallbackContext):
                 order_type = 'LONG' if order['side'].lower() == 'buy' else 'SHORT'
 
                 # Format the order data as per your requirements
-                message = f"Symbol: {order['market']}\nType: {order_type}\nPrice: {order['price']}\nSize: {order['size']}\nOrder ID: {order['id']}"
+                message = f"Symbol: {order['market']}\nSide: {order_type}\nType: {order['type']}\nPrice: {order['price']}\nSize: {order['size']}\nOrder ID: {order['id']}"
                 messages.append(message)
             text = "\n".join(messages)
             update.message.reply_text(text=f"Open Orders: \n\n{text}")
