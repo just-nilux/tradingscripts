@@ -97,6 +97,7 @@ def process_response(update: Update, context: CallbackContext):
 
     elif response == 'Account Equity':
         acc_equity = client.fetch_free_equity()
+        print(acc_equity)
         if acc_equity is not None:
             update.message.reply_text(text=f"Account Equity: {acc_equity}")
         else:
