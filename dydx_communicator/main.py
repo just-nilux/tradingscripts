@@ -112,7 +112,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
                 key = f"{symbol}_{timeframe}"
 
                 if key not in atrs:
-                    atrs[key] = ATR(14)
+                    atrs[key] = ATR(3)
 
                 for strategy_function in strategy_functions:
                     key = f"{symbol}_{timeframe}_{strategy_function}"
@@ -217,7 +217,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
                     atr = atrs[f"{symbol}_{timeframe}"]
                     atr.add_input_value(last_closed_candle)
                     if not atr:
-                        logger.error(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)}")
+                        logger.error(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.periods}")
                         return
                     print(atr)
 
