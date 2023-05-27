@@ -46,9 +46,8 @@ async def get_klines_async(
             response_json = await resp.json()
             candles = response_json["candles"]
 
-            # Reverse the list of candles if it's the first iteration (API returns candles in descending order)
-            if first_iteration:
-                candles = candles[::-1]
+            # Reverse the list of candles (API returns candles in descending order)
+            candles = candles[::-1]
 
             # Process all candles during the first iteration, and only the last closed candle in subsequent iterations
             processed_candles = []
