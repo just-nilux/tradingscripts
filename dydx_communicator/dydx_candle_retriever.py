@@ -51,10 +51,9 @@ async def get_klines_async(
             latest_closed_candle = None
             latest_closed_candle_start = None
             for candle in candles:
-                print('Before')
                 candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
                 candle_end = candle_start + timedelta(seconds=durations[timeframe])
-                print('HOLA')
+
                 now = datetime.now(tz=candle_end.tzinfo)
 
                 if now > candle_end and (latest_closed_candle is None or candle_start > latest_closed_candle_start):
@@ -62,8 +61,8 @@ async def get_klines_async(
                     latest_closed_candle_start = candle_start
             
             # Create a pandas Series from the latest closed candle
-            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
-            data = {'Open': float(latest_closed_candle['open']), 'High': float(latest_closed_candle['high']), 'Low': float(latest_closed_candle['low']), 'Close': float(latest_closed_candle['close']), 'Volume': float(latest_closed_candle['usdVolume'])}
+            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
+            data = {'open': float(latest_closed_candle['open']), 'high': float(latest_closed_candle['high']), 'low': float(latest_closed_candle['low']), 'close': float(latest_closed_candle['close']), 'volume': float(latest_closed_candle['usdVolume'])}
             latest_closed_candle = pd.Series(data, name=formatted_timestamp)
 
             return symbol, latest_closed_candle

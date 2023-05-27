@@ -40,16 +40,16 @@ class SweepDetector:
     def detect_sweep_magnitude(self, side: str):
         
         if side == "upside_liq":
-            price_above_liq_level_pct = ((self.current_row.High - self.upper_liq_level) / self.upper_liq_level) * 100
+            price_above_liq_level_pct = ((self.current_row.high - self.upper_liq_level) / self.upper_liq_level) * 100
             if price_above_liq_level_pct >= self.cross_pct_threshold:
-                self.logger.info(f'Price {self.current_row.High} crossed UPPER liq. level {self.upper_liq_level} with a threshold of: {round(price_above_liq_level_pct,2)}%')
+                self.logger.info(f'Price {self.current_row.high} crossed UPPER liq. level {self.upper_liq_level} with a threshold of: {round(price_above_liq_level_pct,2)}%')
                 self.sweep_crossed_with_min_req_pct = True
 
 
         elif side == "downside_liq":
-            price_below_liq_level_pct = ((self.lower_liq_level - self.current_row.Low) / self.lower_liq_level) * 100
+            price_below_liq_level_pct = ((self.lower_liq_level - self.current_row.low) / self.lower_liq_level) * 100
             if price_below_liq_level_pct >= self.cross_pct_threshold:
-                self.logger.info(f'Price {self.current_row.Low} crossed LOWER liq. level {self.lower_liq_level} with: {round(price_below_liq_level_pct,2)}%')
+                self.logger.info(f'Price {self.current_row.low} crossed LOWER liq. level {self.lower_liq_level} with: {round(price_below_liq_level_pct,2)}%')
                 self.sweep_crossed_with_min_req_pct = True
 
             
@@ -62,22 +62,22 @@ class SweepDetector:
         if self.candle_for_first_cross_of_liq_level is None:
 
             # For upper liquidation level
-            if self.current_row.Low < self.upper_liq_level < self.current_row.Close:
+            if self.current_row.low < self.upper_liq_level < self.current_row.close:
                 self.logger.info(f'Upper liq. level: {self.upper_liq_level}')
                 self.logger.info(f'Lower liq. level: {self.lower_liq_level}')
 
                 self.candle_for_first_cross_of_liq_level = self.current_row
-                self.logger.info(f'First cross of UPPER liq. level at: {self.candle_for_first_cross_of_liq_level.Index} - Close:{self.current_row.Close}')
+                self.logger.info(f'First cross of UPPER liq. level at: {self.candle_for_first_cross_of_liq_level.Index} - close:{self.current_row.close}')
                 self.cross_of_upper_liq = True
                 self.detect_sweep_magnitude("upside_liq")
 
             # For lower liquidation level
-            elif self.current_row.High > self.lower_liq_level > self.current_row.Close:
+            elif self.current_row.high > self.lower_liq_level > self.current_row.close:
                 self.logger.info(f'Upper liq. level: {self.upper_liq_level}')
                 self.logger.info(f'Lower liq. level: {self.lower_liq_level}')
 
                 self.candle_for_first_cross_of_liq_level = self.current_row
-                self.logger.info(f'First cross of LOWER liq. level at: {self.candle_for_first_cross_of_liq_level.Index} - Close:{self.current_row.Close}')
+                self.logger.info(f'First cross of LOWER liq. level at: {self.candle_for_first_cross_of_liq_level.Index} - close:{self.current_row.close}')
                 self.cross_of_lower_liq = True
                 self.detect_sweep_magnitude("downside_liq")
             else:
@@ -97,13 +97,13 @@ class SweepDetector:
                 self.reset()
                 return None
 
-            elif self.current_row.Close < self.upper_liq_level and not self.sweep_crossed_with_min_req_pct:
+            elif self.current_row.close < self.upper_liq_level and not self.sweep_crossed_with_min_req_pct:
                 self.logger.warning(f"Sweep did not cross UPPER liq. level with the minimum requirement {self.cross_pct_threshold}%")
                 self.reset()
                 return None
 
-            elif self.current_row.Close < self.upper_liq_level and self.sweep_crossed_with_min_req_pct and self.invalidation_cnt <= self.n_periods_to_confirm_sweep:
-                self.logger.info(f'UPPER liq. sweep fulfilled at {self.current_row.Index} - Close: {self.current_row.Close}')
+            elif self.current_row.close < self.upper_liq_level and self.sweep_crossed_with_min_req_pct and self.invalidation_cnt <= self.n_periods_to_confirm_sweep:
+                self.logger.info(f'UPPER liq. sweep fulfilled at {self.current_row.Index} - close: {self.current_row.close}')
                 self.reset()
                 return (self.current_row, "SELL")
 
@@ -121,13 +121,13 @@ class SweepDetector:
                 self.reset()
                 return 'invalid' #None
             
-            elif self.current_row.Close > self.lower_liq_level and not self.sweep_crossed_with_min_req_pct:
+            elif self.current_row.close > self.lower_liq_level and not self.sweep_crossed_with_min_req_pct:
                 self.logger.warning(f"Sweep did not cross LOWER liq. level with the minimum requirement {self.cross_pct_threshold}%")
                 self.reset()
                 return 'invalid' #None
 
             
-            elif self.current_row.Close > self.lower_liq_level and self.sweep_crossed_with_min_req_pct and self.invalidation_cnt <= self.n_periods_to_confirm_sweep:
-                self.logger.info(f'LOWER liq. sweep fulfilled at {self.current_row.Index} - Close: {self.current_row.Close}')
+            elif self.current_row.close > self.lower_liq_level and self.sweep_crossed_with_min_req_pct and self.invalidation_cnt <= self.n_periods_to_confirm_sweep:
+                self.logger.info(f'LOWER liq. sweep fulfilled at {self.current_row.Index} - close: {self.current_row.close}')
                 self.reset()
                 return (self.current_row, "BUY")

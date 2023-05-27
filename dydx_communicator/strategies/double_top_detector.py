@@ -10,7 +10,7 @@ class DoubleTopDetector:
 
     Attributes:
         current_row (pd.series): Last row [-1] in a pandas DataFrame with OHLCV data.
-        n_periods_to_confirm_swing (int): The number of consecutive periods where High < ressist zone lower to confirm a swing.
+        n_periods_to_confirm_swing (int): The number of consecutive periods where high < ressist zone lower to confirm a swing.
         invalidation_n (int): The maximum number of periods allowed after the swing is detected before invalidating the setup.
         ressist_zone_upper (float, None): The upper limit of the ressist zone.
         ressist_zone_lower (float, None): The lower limit of the ressist zone.
@@ -77,25 +77,25 @@ class DoubleTopDetector:
 
         if self.timestamp_for_first_touch is None:
    
-            if self.current_row.Open < self.resistance_zone_lower and self.current_row.High >= self.resistance_zone_lower and self.current_row.Close <= self.resistance_zone_upper:
-                print('HERE')
+            if self.current_row.open < self.resistance_zone_lower and self.current_row.high >= self.resistance_zone_lower and self.current_row.close <= self.resistance_zone_upper:
+
                 self.timestamp_for_first_touch = self.current_row.Index
-                self.sell_zone = (max(self.current_row.Close, self.resistance_zone_lower), self.current_row.High)
+                self.sell_zone = (max(self.current_row.close, self.resistance_zone_lower), self.current_row.high)
 
                 self.logger.info(f'Resistance Zone upper: {self.resistance_zone_upper}')
                 self.logger.info(f'Resistance Zone Lower: {self.resistance_zone_lower}')
-                self.logger.info(f'First touch of resistance zone at: {self.timestamp_for_first_touch} - High:{self.current_row.High}')
+                self.logger.info(f'First touch of resistance zone at: {self.timestamp_for_first_touch} - high:{self.current_row.high}')
                 self.logger.info(f"Sell zone: {self.sell_zone}")
         
         else:
 
-            if self.current_row.Close > self.resistance_zone_upper:
+            if self.current_row.close > self.resistance_zone_upper:
                 
                 self.logger.warning(f"Candle closed above upper resistance zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
                 return None
             
-            elif self.current_row.Close > self.sell_zone[1]:
+            elif self.current_row.close > self.sell_zone[1]:
 
                 self.logger.warning(f"Candle closed above sell zone at: {self.current_row.Index}. Setup invalid.")
                 self.reset()
@@ -110,14 +110,14 @@ class DoubleTopDetector:
                     self.reset()
                     return None
             
-                elif self.current_row.High >= self.sell_zone[0]:
+                elif self.current_row.high >= self.sell_zone[0]:
                     self.logger.info(f"Price in sell zone: {self.current_row.Index}")
                     self.reset()
                     return (self.current_row, "SELL")
 
             else:
 
-                if self.current_row.High < self.resistance_zone_lower:
+                if self.current_row.high < self.resistance_zone_lower:
                 
                     self.candle_counter += 1
 
@@ -126,6 +126,6 @@ class DoubleTopDetector:
                         self.logger.info(f'Swing after first touch detected: {self.current_row.Index}')
                         self.swing_detected = True
 
-                elif self.current_row.High > self.resistance_zone_lower:
+                elif self.current_row.high > self.resistance_zone_lower:
 
                     self.candle_counter = 0
