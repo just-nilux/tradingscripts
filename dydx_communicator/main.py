@@ -299,18 +299,19 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         # for python 3.6
         #loop = asyncio.get_event_loop()
         #all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        print(all_symbols)
-        print(all_timeframes)
-        all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
+        #loop = asyncio.new_event_loop()
+        #asyncio.set_event_loop(loop)
+        #print(all_symbols)
+        #print(all_timeframes)
+        #all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
 
-        print(all_symbol_df)
+        #print(all_symbol_df)
 
 
 
         # fetch symbol data - when python have been updated to at least 3.7:
-        #all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
+        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
+        
         execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
 
         check_liquidation_zone(liq_levels, client)
