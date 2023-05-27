@@ -217,7 +217,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
                     atr = atrs[f"{symbol}_{timeframe}"]
                     atr.add_input_value(last_closed_candle)
                     if not atr:
-                        logger.error(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.periods}")
+                        logger.error(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
                         return
                     print(atr)
 
