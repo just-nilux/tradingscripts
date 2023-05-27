@@ -212,12 +212,11 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
                 if not (minutes % timeframe_minutes):
 
                     last_closed_candle = all_symbol_df[(symbol, timeframe)]
-                    print(last_closed_candle)
 
                     atr = atrs[f"{symbol}_{timeframe}"]
                     atr.add_input_value(last_closed_candle)
                     if not atr:
-                        logger.error(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+                        logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
                         continue
                     print(atr)
 
@@ -244,7 +243,6 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
                                 signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
                         except Exception as e:
-                            print(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
                             logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
                        
                         try:
@@ -295,21 +293,7 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         # create unique sets of all symbols and timeframes
         all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-
-        # for python 3.6
-        #loop = asyncio.get_event_loop()
-        #all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
-        #loop = asyncio.new_event_loop()
-        #asyncio.set_event_loop(loop)
-        #print(all_symbols)
-        #print(all_timeframes)
-        #all_symbol_df = loop.run_until_complete(get_all(all_symbols, all_timeframes))
-
-        #print(all_symbol_df)
-
-
-
-        # fetch symbol data - when python have been updated to at least 3.7:
+        
         all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
         
         execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
