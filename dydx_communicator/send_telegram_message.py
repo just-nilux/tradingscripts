@@ -48,6 +48,7 @@ def start(update: Update, context: CallbackContext) -> None:
         ["Active Symbols"],
         ["Active Strategies"],
         ["Open Positions"],
+        ['Account equity']
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard)
@@ -93,6 +94,15 @@ def process_response(update: Update, context: CallbackContext):
     elif response == 'Open Positions':
         positions = client.fetch_all_open_position()
         update.message.reply_text(text=positions)
+
+    elif response == 'Account Equity':
+        acc_equity = client.fetch_free_equity()
+        if acc_equity is not None:
+            update.message.reply_text(text=f"Account Equity: {acc_equity}")
+        else:
+            update.message.reply_text(text="Failed to fetch account equity.")
+
+
         
 
 
