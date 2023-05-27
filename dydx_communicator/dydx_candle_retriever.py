@@ -79,14 +79,13 @@ async def get_klines_async(
 
 
 
-
-async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[str, Any]]:
+async def get_all(symbols: List[str], timeframes: List[str], limit: int) -> Dict[str, Dict[str, Any]]:
     """
     Retrieves the latest closed candles for all symbols and timeframes.
     """
     sem = asyncio.Semaphore(CONCURRENT_LIMIT)
     async with aiohttp.ClientSession() as session:
-        tasks = {get_klines_async(sem, session, symbol, timeframe=timeframe): (symbol, timeframe) 
+        tasks = {get_klines_async(sem, session, symbol, timeframe=timeframe, limit=limit): (symbol, timeframe) 
                  for symbol in symbols
                  for timeframe in timeframes}
         results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
@@ -94,6 +93,7 @@ async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[s
         candles = {tasks[task]: result[1] for task, result in zip(tasks.keys(), results) if result is not None}
 
         return candles
+
 
 
 #async def get_all(symbols: List[str], timeframe: str = '1h') -> Dict[str, Dict[str, Any]]:
