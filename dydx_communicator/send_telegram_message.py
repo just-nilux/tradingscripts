@@ -111,13 +111,17 @@ def process_response(update: Update, context: CallbackContext):
         if orders:
             messages = []
             for order in orders:
+                # Transform 'buy' to 'LONG' and 'sell' to 'SHORT'
+                order_type = 'LONG' if order['side'].lower() == 'buy' else 'SHORT'
+
                 # Format the order data as per your requirements
-                message = f"Order ID: {order['id']}, Market: {order['market']}, Side: {order['side']}, Price: {order['price']}, Size: {order['size']}"
+                message = f"Symbol: {order['market']}\nType: {order_type}\nPrice: {order['price']}\nSize: {order['size']}\nOrder ID: {order['id']}"
                 messages.append(message)
             text = "\n".join(messages)
             update.message.reply_text(text=f"Open Orders: \n{text}")
         else:
             update.message.reply_text(text="No open orders.")
+
 
 
         
