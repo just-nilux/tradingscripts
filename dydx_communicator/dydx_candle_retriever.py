@@ -50,16 +50,21 @@ async def get_klines_async(
             candles = candles[::-1]
 
             # Process all candles during the first iteration, and only the last closed candle in subsequent iterations
+            latest_closed_candle = None
+            latest_closed_candle_start = None
             processed_candles = []
             for candle in candles:
                 candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
                 candle_end = candle_start + timedelta(seconds=durations[timeframe])
 
                 now = datetime.now(tz=candle_end.tzinfo)
+                is_closed = now >= candle_end
 
-                # If it's not the first iteration and the current candle is not closed, break the loop
-                if not first_iteration and now <= candle_end:
-                    break
+                if is_closed and (latest_closed_candle is None or (latest_closed_candle_start is not None and latest_closed_candle_start < candle_start)):
+                    latest_closed_candle = candle
+                    latest_closed_candle_start = candle_start
+
+
 
                 # Create a pandas Series from the candle
                 formatted_timestamp = datetime.strptime(candle['updatedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
@@ -67,6 +72,13 @@ async def get_klines_async(
                 processed_candle = pd.Series(data, name=formatted_timestamp)
                 processed_candles.append(processed_candle)
 
+            # Find the index of the latest closed candle in the original candles list
+            latest_closed_candle_index = candles.index(latest_closed_candle)
+
+            # Slice the processed_candles list to include only the latest_closed_candle and the ones before it
+            processed_candles = processed_candles[:latest_closed_candle_index+1]
+
+            # Convert the sliced list into a DataFrame
             return symbol, pd.DataFrame(processed_candles)
 
         except Exception as e:
