@@ -112,7 +112,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
                 key = f"{symbol}_{timeframe}"
 
                 if key not in atrs:
-                    atrs[key] = ATR(3)
+                    atrs[key] = ATR(14)
 
                 for strategy_function in strategy_functions:
                     key = f"{symbol}_{timeframe}_{strategy_function}"
@@ -212,7 +212,6 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
                 if not (minutes % timeframe_minutes):
 
                     candles = all_symbol_df[(symbol, timeframe)]
-                    print(candles)
 
                     # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
                     if first_iteration:
@@ -226,14 +225,8 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
                         last_closed_candle = candles.iloc[-1]
                         atr = atrs[f"{symbol}_{timeframe}"]
                         atr.add_input_value(last_closed_candle)
-                        if not atr:
-                            logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-                    print(last_closed_candle)
-                    #atr = atrs[f"{symbol}_{timeframe}"]
-                    #atr.add_input_value(last_closed_candle)
-                    #if not atr:
-                    #    logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-                    #    continue
+                       
+                   
 
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
