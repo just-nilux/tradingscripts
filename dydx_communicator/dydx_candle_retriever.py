@@ -33,43 +33,50 @@ async def get_klines_async(
     sem: asyncio.locks.Semaphore,
     session: aiohttp.ClientSession,
     symbol: str,
-    timeframe: str = '1h'
-) -> pd.Series:
+    timeframe: str = '1h',
+    first_iteration: bool = True
+) -> pd.DataFrame:
 
     async with sem:
         try:
             logger.info(f"Retrieving {symbol}")
 
-            # https://api.dydx.exchange/v3/candles/BTC-USD?limit=5&resolution=1MIN
-            candle_endpoint = f"{BASE_URL}/v3/candles/{symbol}"
+            # Set the limit parameter based on whether it's the first iteration or not
+            limit = 100 if first_iteration else 2
 
-            resp = await session.request('GET', url=candle_endpoint, params={'resolution': timeframe, 'limit': 2})
+            candle_endpoint = f"{BASE_URL}/v3/candles/{symbol}"
+            resp = await session.request('GET', url=candle_endpoint, params={'resolution': timeframe, 'limit': limit})
             response_json = await resp.json()
             candles = response_json["candles"]
 
-            # find latest closed candle
-            latest_closed_candle = None
-            latest_closed_candle_start = None
+            # Reverse the list of candles if it's the first iteration (API returns candles in descending order)
+            if first_iteration:
+                candles = candles[::-1]
+
+            # Process all candles during the first iteration, and only the last closed candle in subsequent iterations
+            processed_candles = []
             for candle in candles:
                 candle_start = datetime.strptime(candle["startedAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
                 candle_end = candle_start + timedelta(seconds=durations[timeframe])
 
                 now = datetime.now(tz=candle_end.tzinfo)
 
-                if now > candle_end and (latest_closed_candle is None or candle_start > latest_closed_candle_start):
-                    latest_closed_candle = candle
-                    latest_closed_candle_start = candle_start
-            
-            # Create a pandas Series from the latest closed candle
-            formatted_timestamp = datetime.strptime(latest_closed_candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
-            data = {'open': float(latest_closed_candle['open']), 'high': float(latest_closed_candle['high']), 'low': float(latest_closed_candle['low']), 'close': float(latest_closed_candle['close']), 'volume': float(latest_closed_candle['usdVolume'])}
-            latest_closed_candle = pd.Series(data, name=formatted_timestamp)
+                # If it's not the first iteration and the current candle is not closed, break the loop
+                if not first_iteration and now <= candle_end:
+                    break
 
-            return symbol, latest_closed_candle
+                # Create a pandas Series from the candle
+                formatted_timestamp = datetime.strptime(candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
+                data = {'open': float(candle['open']), 'high': float(candle['high']), 'low': float(candle['low']), 'close': float(candle['close']), 'volume': float(candle['usdVolume'])}
+                processed_candle = pd.Series(data, name=formatted_timestamp)
+                processed_candles.append(processed_candle)
+
+            return symbol, pd.DataFrame(processed_candles)
 
         except Exception as e:
             logger.error(f"Error occurred while retrieving {symbol}: {str(e)}")
             return symbol, None
+
 
 
 
@@ -84,7 +91,6 @@ async def get_all(symbols: List[str], timeframes: List[str]) -> Dict[str, Dict[s
                  for timeframe in timeframes}
         results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
 
-        #candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
         candles = {tasks[task]: result[1] for task, result in zip(tasks.keys(), results) if result is not None}
 
         return candles

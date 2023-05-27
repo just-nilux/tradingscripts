@@ -197,7 +197,7 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
-def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
+def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration):
     current_time = datetime.datetime.now()
     minutes = current_time.minute
 
@@ -213,11 +213,26 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
 
                     last_closed_candle = all_symbol_df[(symbol, timeframe)]
 
-                    atr = atrs[f"{symbol}_{timeframe}"]
-                    atr.add_input_value(last_closed_candle)
-                    if not atr:
-                        logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-                        continue
+
+                    # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
+                    if first_iteration:
+                        for _, candle in last_closed_candle.iterrows():
+                            atr = atrs[f"{symbol}_{timeframe}"]
+                            atr.add_input_value(candle)
+                            if not atr:
+                                logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+                    else:
+                        last_closed_candle = last_closed_candle.iloc[-1]
+                        atr = atrs[f"{symbol}_{timeframe}"]
+                        atr.add_input_value(last_closed_candle)
+                        if not atr:
+                            logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+
+                    #atr = atrs[f"{symbol}_{timeframe}"]
+                    #atr.add_input_value(last_closed_candle)
+                    #if not atr:
+                    #    logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+                    #    continue
 
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
@@ -270,6 +285,9 @@ def execute_main(client, json_file_path, liq_levels, detectors):
     # Initialize the last hash as an empty string
     process_json_file.last_hash = ''
 
+    # Initialize first_iteration as True
+    first_iteration = True
+
     while True:
         # Get the current time
         current_time = datetime.datetime.now()
@@ -291,12 +309,16 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         # create unique sets of all symbols and timeframes
         all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-        
-        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes))
-        
-        execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df)
+
+        # On the first iteration, get 100 candles, otherwise get only the latest candle
+        limit = 100 if first_iteration else 2
+        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, limit))
+                
+        execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration)
 
         check_liquidation_zone(liq_levels, client)
+
+        first_iteration = False
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)
         logger.debug("Sleeping untill next minute")
