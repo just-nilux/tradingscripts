@@ -2,7 +2,7 @@ from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
 from strategies.liq_sweep_detector import SweepDetector
 from collections import defaultdict
-from DydxClient import DydxClient
+from dydxClient import DydxClient
 from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
 from logger_setup import setup_logger

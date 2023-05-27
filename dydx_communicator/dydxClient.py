@@ -113,7 +113,33 @@ class DydxClient:
         
 
 
-    def fetch_all_open_position(self, symbol=None) -> Dict[str, List[Any]]:
+    def format_positions_data(self, positions_data) -> str:
+        """
+        Format positions data into a string.
+
+        Args:
+            positions_data (dict): The positions data to format.
+
+        Returns:
+            str: Formatted positions data.
+        """
+        if not positions_data or not positions_data.get('positions'):
+            return "No open positions"
+
+        result_str = ""
+        for position in positions_data.get('positions', []):
+            result_str += f"\n\nMarket: {position['market']}\n"
+            result_str += f"Side: {position['side']}\n"
+            result_str += f"Size: {position['size']}\n"
+            result_str += f"Entry Price: {position['entryPrice']}\n"
+            result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
+            result_str += f"Created At: {position['createdAt']}"
+        
+        return result_str
+
+
+
+    def fetch_all_open_position(self, symbol=None) -> str:
         """
         Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
 
@@ -122,19 +148,19 @@ class DydxClient:
                                     If not provided, returns all open positions across all symbols.
 
         Returns:
-            dict: Positions data containing open positions for the specified symbol or all symbols if not provided.
+            str: A string containing information about open positions for the specified symbol or all symbols if not provided.
 
         """
         try:
             if symbol is None:
-                return self.client.private.get_positions(status='OPEN').data
-            
+                positions_data = self.client.private.get_positions(status='OPEN').data
             elif isinstance(symbol, str):
-                return self.client.private.get_positions(market=symbol, status='OPEN').data
-        
+                positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data
+
+            return self.format_positions_data(positions_data)
+
         except Exception as e:
-            print(f"An error occurred while fetching open positions: {e}")
-            return None
+            return "An error occurred while fetching open positions"
         
 
 
