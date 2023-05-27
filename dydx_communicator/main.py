@@ -218,8 +218,6 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df):
                     if not atr:
                         logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
                         continue
-                    print(atr)
-
 
                     # fetch support and resistance levels
                     support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
