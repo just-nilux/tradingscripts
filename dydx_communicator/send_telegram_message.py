@@ -70,7 +70,7 @@ def process_response(update: Update, context: CallbackContext):
                 timeframes = strategy['timeframes']
                 messages = []
                 for symbol in active_symbols:
-                    message = f"Symbol: {symbol} - Timeframes: {', '.join(timeframes)}"
+                    message = f"Symbol: {symbol} \nTimeframes: {', '.join(timeframes)}"
                     messages.append(message)
                 text = "\n".join(messages)
                 update.message.reply_text(text=f"Active Symbols: \n{text}")
