@@ -118,7 +118,7 @@ def process_response(update: Update, context: CallbackContext):
                 message = f"Symbol: {order['market']}\nType: {order_type}\nPrice: {order['price']}\nSize: {order['size']}\nOrder ID: {order['id']}"
                 messages.append(message)
             text = "\n".join(messages)
-            update.message.reply_text(text=f"Open Orders: \n{text}")
+            update.message.reply_text(text=f"Open Orders: \n\n{text}")
         else:
             update.message.reply_text(text="No open orders.")
 
