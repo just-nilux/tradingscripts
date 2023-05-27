@@ -113,6 +113,7 @@ def process_response(update: Update, context: CallbackContext):
         if orders:
             messages = []
             for order in orders:
+                print(order)
                 # Format the order data as per your requirements
                 message = f"Order ID: {order['id']}, Market: {order['market']}, Side: {order['side']}, Price: {order['price']}, Size: {order['size']}"
                 messages.append(message)
