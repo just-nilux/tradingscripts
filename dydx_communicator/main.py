@@ -212,11 +212,11 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
                 if not (minutes % timeframe_minutes):
 
                     last_closed_candle = all_symbol_df[(symbol, timeframe)]
-
+                    print(last_closed_candle)
 
                     # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
                     if first_iteration:
-                        for _, candle in last_closed_candle.iterrows():
+                        for _, candle in last_closed_candle.itertuples():
                             atr = atrs[f"{symbol}_{timeframe}"]
                             atr.add_input_value(candle)
                             if not atr:
