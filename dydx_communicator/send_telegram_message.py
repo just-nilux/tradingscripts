@@ -6,11 +6,13 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from telegram import Update
 from logger_setup import setup_logger
 
+
 import threading
 import requests
 import datetime
 import pytz
 import logging
+
 
 logger = setup_logger(__name__)
 
@@ -86,6 +88,12 @@ def process_response(update: Update, context: CallbackContext):
                 update.message.reply_text(text=f"Active Strategies: \n{text}")
             else:
                 update.message.reply_text(text=f"No active strategies found.")
+
+    elif response == "Open Positions":
+        positions = client.fetch_all_open_position()
+        update.message.reply_text(text=positions)
+        
+
 
 
 
