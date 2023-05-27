@@ -116,7 +116,7 @@ def process_response(update: Update, context: CallbackContext):
                 trigger_price = f"\nTrigger Price: {order['triggerPrice']}" if order['triggerPrice'] is not None else ""
 
                 # Format the order data as per your requirements
-                message = f"Symbol: {order['market']}\nType: {order_type}\nOrder Type: {order['type']}\nPrice: {order['price']}{trigger_price}\nSize: {order['size']}\nOrder ID: {order['id']}"
+                message = f"Symbol: {order['market']}\nType: {order_type}\nOrder Type: {order['type']}\nPrice: {order['price']}{trigger_price}\nSize: {order['size']}\n"
                 messages.append(message)
             text = "\n".join(messages)
             update.message.reply_text(text=f"Open Orders: \n\n{text}")
