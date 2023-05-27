@@ -11,9 +11,6 @@ from logger_setup import setup_logger
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from dydx3 import Client
-from web3 import Web3
-
 durations = {
     '1MIN': 60,
     '5MINS': 5 * 60,
@@ -66,7 +63,7 @@ async def get_klines_async(
                     break
 
                 # Create a pandas Series from the candle
-                formatted_timestamp = datetime.strptime(candle['startedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
+                formatted_timestamp = datetime.strptime(candle['updatedAt'], "%Y-%m-%dT%H:%M:%S.%f%z").strftime("%Y-%m-%d %H:%M:%S")
                 data = {'open': float(candle['open']), 'high': float(candle['high']), 'low': float(candle['low']), 'close': float(candle['close']), 'volume': float(candle['usdVolume'])}
                 processed_candle = pd.Series(data, name=formatted_timestamp)
                 processed_candles.append(processed_candle)
@@ -93,17 +90,3 @@ async def get_all(symbols: List[str], timeframes: List[str], first_iteration: bo
         candles = {tasks[task]: result[1] for task, result in zip(tasks.keys(), results) if result is not None}
 
         return candles
-
-
-
-#async def get_all(symbols: List[str], timeframe: str = '1h') -> Dict[str, Dict[str, Any]]:
-#    """
-#    Retrieves the latest closed candles for all symbols.
-#    """
-#    sem = asyncio.Semaphore(CONCURRENT_LIMIT)
-#    async with aiohttp.ClientSession() as session:
-#        tasks = {get_klines_async(sem, session, symbol, timeframe=timeframe): symbol for symbol in symbols}
-#        results = await asyncio.gather(*tasks.keys(), return_exceptions=True)
-#
-#        candles = {tasks[task]: result for task, result in zip(tasks.keys(), results) if result is not None}
-#        return candles
