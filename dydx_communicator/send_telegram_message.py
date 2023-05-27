@@ -109,6 +109,7 @@ def process_response(update: Update, context: CallbackContext):
     elif response == 'Open Orders':
         # Assuming 'client' is an instance of dydx client
         orders = client.get_open_orders()
+        print(orders)
         if orders:
             messages = []
             for order in orders:
