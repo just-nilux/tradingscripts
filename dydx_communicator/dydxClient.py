@@ -5,8 +5,11 @@ import pandas as pd
 from time import time
 from time import sleep
 from dydx3 import Client
+from web3.auto import w3
 from typing import Tuple, List, Dict, Any
+from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
+
 
 
 class DydxClient:
@@ -23,7 +26,10 @@ class DydxClient:
         self.secret_key = self.config['dydx_api_secret']
         self.passphrase = self.config['dydx_passphrase']
         self.stark_private_key = self.config['dydx_stark_private_key']
-        self.default_ethereum_address = self.config['dydx_default_ethereum_address']
+        self.default_ethereum_address = w3.eth.account.from_key(self.stark_private_key).address #self.config['dydx_default_ethereum_address']
+
+        self.logger = setup_logger(__name__)
+
 
 
         self.client, self.position_id = self.initialize_dydx_client(
@@ -69,7 +75,7 @@ class DydxClient:
             return client, position_id
 
         except Exception as e:
-            print(f"An error occurred while initialize dydx client: {e}")
+            self.logger.error(f"An error occurred while initialize dydx client: {e}")
             return None
         
 
@@ -89,7 +95,7 @@ class DydxClient:
             return symbols
         
         except Exception as e:
-            print(f"An error occurred while fetching all symbols: {e}")
+            self.logger.error(f"An error occurred while fetching all symbols: {e}")
             return None
 
 
@@ -108,7 +114,7 @@ class DydxClient:
             return free_collateral
 
         except Exception as e:
-            print(f"An error occurred while fetching free equity: {e}")
+            self.logger.error(f"An error occurred while fetching free equity: {e}")
             return None
         
 
@@ -161,7 +167,13 @@ class DydxClient:
 
         except Exception as e:
             return "An error occurred while fetching open positions"
-        
+
+
+
+    def get_open_orders(self):
+        response = self.client.private.get_orders(status='OPEN')
+        return response.data
+
 
 
     def get_klines(self, symbol: str, interval: str):
@@ -188,8 +200,8 @@ class DydxClient:
                 return df
             
             except Exception as e:
-                print(f"Error fetching data for {symbol}: {e}")
-                print("Retrying in 0.5 seconds...")
+                self.logger.error(f"Error fetching data for {symbol}: {e}")
+                self.logger.error("Retrying in 0.5 seconds...")
                 sleep(0.25)
 
 
@@ -342,6 +354,6 @@ class DydxClient:
             #return order_id
 
         except Exception as e:
-            print(f"An error occurred while placing the market order: {e}")
+            self.logger.error(f"An error occurred while placing the market order: {e}")
             return None
             

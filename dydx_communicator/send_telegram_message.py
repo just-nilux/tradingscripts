@@ -36,7 +36,7 @@ def send_telegram_message(bot_token: str, chat_ids: list, text: str):
 
     # if the current hour is outside the allowed time window or it's not the start of the hour, don't send any messages
     else:
-        print("Message not sent due to it being outside the allowed time windows (23:00 - 06:00 and 18:00 - 20:30) or not at the top of the hour.")
+        logger.info("Message not sent due to it being outside the allowed time windows (23:00 - 06:00 and 18:00 - 20:30) or not at the top of the hour.")
         return None
 
 
@@ -47,8 +47,9 @@ def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         ["Active Symbols"],
         ["Active Strategies"],
-        ["Open Positions"],
         ['Account Equity'],
+        ["Open Positions"],
+        ['Open Orders'],
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard)
@@ -91,9 +92,11 @@ def process_response(update: Update, context: CallbackContext):
             else:
                 update.message.reply_text(text=f"No active strategies found.")
 
+
     elif response == 'Open Positions':
         positions = client.fetch_all_open_position()
         update.message.reply_text(text=positions)
+
 
     elif response == 'Account Equity':
         acc_equity = client.fetch_free_equity()
@@ -101,6 +104,21 @@ def process_response(update: Update, context: CallbackContext):
             update.message.reply_text(text=f"Account Equity: {round(acc_equity,1)}$")
         else:
             update.message.reply_text(text="Failed to fetch account equity.")
+
+
+    elif response == 'Open Orders':
+        # Assuming 'client' is an instance of dydx client
+        orders = client.private.get_orders(status='OPEN').data
+        if orders:
+            messages = []
+            for order in orders:
+                # Format the order data as per your requirements
+                message = f"Order ID: {order['id']}, Market: {order['market']}, Side: {order['side']}, Price: {order['price']}, Size: {order['size']}"
+                messages.append(message)
+            text = "\n".join(messages)
+            update.message.reply_text(text=f"Open Orders: \n{text}")
+        else:
+            update.message.reply_text(text="No open orders.")
 
 
         
