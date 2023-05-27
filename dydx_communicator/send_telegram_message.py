@@ -45,11 +45,9 @@ def send_telegram_message(bot_token: str, chat_ids: list, text: str):
 def start(update: Update, context: CallbackContext) -> None:
     
     keyboard = [
-        ["Active Symbols"],
-        ["Active Strategies"],
-        ['Account Equity'],
-        ["Open Positions"],
-        ['Open Orders'],
+        ["Active Symbols", "Active Strategies"],
+        ["Open Positions", "Open Orders"],
+        ['Account Equity']
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard)
