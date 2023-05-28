@@ -140,7 +140,7 @@ class DydxClient:
             market_prices = {
                 position['market']: {
                     'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
-                    'STOP_LIMIT': next((order['price'] for order in orders_data if order['triggerPrice'] == position['triggerPrice'] and order['type'] == 'STOP_LIMIT'), None),
+                    'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
                     'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
                 }
                 for position in positions_data['positions']
