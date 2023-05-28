@@ -73,7 +73,7 @@ class DoubleTopDetector:
         self.logger.info('Detection Cycle ended')
 
 
-    def detect(self): # -> Tuple[Optional[pd.Series], Optional[str]]:
+    def detect(self) -> Union[None, Tuple[pd.Series, str]]:
 
         if self.timestamp_for_first_touch is None:
    

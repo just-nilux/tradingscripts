@@ -305,7 +305,8 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
 
         all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
-                
+        print(type(all_symbol_df))
+        print(all_symbol_df)
         execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration)
 
         check_liquidation_zone(liq_levels, client)
