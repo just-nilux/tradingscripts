@@ -169,13 +169,20 @@ class DydxClient:
         results = []
         for position in positions_data.get('positions', []):
             current_prices = market_prices.get(position['market'], {})
+            entry_price = float(position['entryPrice'])
+            tp_price = float(current_prices.get('TAKE_PROFIT', 0))
+            sl_price = float(current_prices.get('STOP_LIMIT', 0))
+
+            tp_percent_change = ((tp_price - entry_price) / entry_price) * 100 if entry_price else None
+            sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
+
             results.append(
                 f"\n\nMarket: {position['market']}\n"
                 f"Side: {position['side']}\n"
                 f"Size: {position['size']}\n"
                 f"Entry Price: {position['entryPrice']}\n"
-                f"TP: {current_prices.get('TAKE_PROFIT')}\n"
-                f"SL: {current_prices.get('STOP_LIMIT')}\n"
+                f"TP: {current_prices.get('TAKE_PROFIT')} ({tp_percent_change:.2f}%)\n"
+                f"SL: {current_prices.get('STOP_LIMIT')} ({sl_percent_change:.2f}%)\n"
                 f"Current Price: {current_prices.get('oracle')}\n"
                 f"Unrealized PnL: {position['unrealizedPnl']}\n"
                 f"Created At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
