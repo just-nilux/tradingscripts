@@ -160,9 +160,9 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
 
 
-def double_top_strat(last_closed_candle, detector, ressist_zone_upper, ressist_zone_lower):
+def doubleTopEntry(last_closed_candle, detector, ressist_zone_upper, ressist_zone_lower):
 
-    logger.debug(f"Executing double top strategy for detector {detector}")
+    logger.debug(f"Executing doubleTopEntry for detector {detector}")
 
     detector.resistance_zone_upper = ressist_zone_upper
     detector.resistance_zone_lower = ressist_zone_lower
@@ -175,9 +175,9 @@ def double_top_strat(last_closed_candle, detector, ressist_zone_upper, ressist_z
 
 
 
-def double_bottom_strat(last_closed_candle, detector, support_zone_upper, support_zone_lower):
+def doubleBottomEntry(last_closed_candle, detector, support_zone_upper, support_zone_lower):
 
-    logger.debug(f"Executing double bottom strategy for detector {detector}")
+    logger.debug(f"Executing doubleBottomEntry for detector {detector}")
 
     detector.support_zone_upper = support_zone_upper
     detector.support_zone_lower = support_zone_lower
@@ -189,9 +189,9 @@ def double_bottom_strat(last_closed_candle, detector, support_zone_upper, suppor
     return (None, None)
 
 
-def liq_sweep_detector(last_closed_candle, detector, upper_liq_level, lower_liq_level):
+def liqSweepEntry(last_closed_candle, detector, upper_liq_level, lower_liq_level):
 
-    logger.debug(f"Executing Liq_sweep_detector strategy for detector {detector}")
+    logger.debug(f"Executing LiqSweepEntry strategy for {detector}")
 
     detector.upper_liq_level = upper_liq_level
     detector.lower_liq_level = lower_liq_level
@@ -261,13 +261,13 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
 
                 try:
                     logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
-                    if strategy_function_name == "double_bottom_strat":
+                    if strategy_function_name == "doubleBottomEntry":
                         signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-                    elif strategy_function_name == "double_top_strat":
+                    elif strategy_function_name == "doubleTopEntry":
                         signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
                     
-                    elif strategy_function_name == "liq_sweep_detector":
+                    elif strategy_function_name == "liqSweepEntry":
                         signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
                 except Exception as e:
