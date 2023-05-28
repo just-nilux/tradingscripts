@@ -36,7 +36,7 @@ async def get_klines_async(
 
     async with sem:
         try:
-            logger.info(f"Retrieving {symbol}")
+            logger.info(f"Retrieving {symbol} - {timeframe}")
 
             # Set the limit parameter based on whether it's the first iteration or not
             limit = 100 if first_iteration else 2
