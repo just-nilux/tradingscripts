@@ -138,6 +138,8 @@ class DydxClient:
             result_str += f"Side: {position['side']}\n"
             result_str += f"Size: {position['size']}\n"
             result_str += f"Entry Price: {position['entryPrice']}\n"
+            result_str += f"SL: {oracles_all_symbols.get(position['market']+'_STOP_LIMIT')}\n"
+            result_str += f"TP: {oracles_all_symbols.get(position['market']+'_TAKE_PROFIT')}\n"
             current_price = oracles_all_symbols.get(position['market'])
             result_str += f"Current Price: {current_price}\n"
             result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
@@ -167,10 +169,21 @@ class DydxClient:
             elif isinstance(symbol, str):
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data
             
+
+            orders = self.client.private.get_orders().data['orders']
             oracles_all_symbols = dict()
+
             for position in positions_data['positions']:
                 sym = position['market']
                 oracles_all_symbols.update({sym: self.client.public.get_markets(sym).data['markets'][sym]['oraclePrice']})
+
+                for order in orders:
+                    if order['market'] == sym:
+                        if order['type'] == 'TAKE_PROFIT':
+                            oracles_all_symbols.update({sym+'_TAKE_PROFIT' : order['price']})
+                        elif order['type'] == 'STOP_LIMIT':
+                            oracles_all_symbols.update({sym+'_STOP_LIMIT' : order['price']})
+
  
             return self.format_positions_data(positions_data, oracles_all_symbols)
 
