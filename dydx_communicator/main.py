@@ -130,7 +130,32 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
                         logger.debug(f"Initialized detector for {key}")
 
+    # Cleanup step
+    current_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
+    current_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
+
+    keys_to_delete = []
+    for key in detectors.keys():
+        symbol, timeframe, _ = key.split("_")
+        if symbol not in current_symbols or timeframe not in current_timeframes:
+            keys_to_delete.append(key)
+
+    for key in keys_to_delete:
+        del detectors[key]
+        logger.debug(f"Removed detector for {key}")
+
+    keys_to_delete = []
+    for key in atrs.keys():
+        symbol, timeframe = key.split("_")
+        if symbol not in current_symbols or timeframe not in current_timeframes:
+            keys_to_delete.append(key)
+
+    for key in keys_to_delete:
+        del atrs[key]
+        logger.debug(f"Removed atr for {key}")
+
     return detectors, atrs
+
 
 
 
@@ -292,8 +317,8 @@ def execute_main(client, json_file_path, liq_levels, detectors):
 
         if res is not None:
             liq_levels = res
-            symbols_added = update_config_with_symbols(liq_levels, client)
-            if symbols_added:
+            symbols_modified = update_config_with_symbols(liq_levels, client)
+            if symbols_modified:
                 detectors, atrs = initialize_detectors(client, detectors, atrs)
 
         # create unique sets of all symbols and timeframes
@@ -301,8 +326,7 @@ def execute_main(client, json_file_path, liq_levels, detectors):
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
 
         all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
-        print(type(all_symbol_df))
-        print(all_symbol_df)
+     
         execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration)
 
         check_liquidation_zone(liq_levels, client)
