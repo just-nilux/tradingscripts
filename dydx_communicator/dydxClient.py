@@ -138,10 +138,10 @@ class DydxClient:
             result_str += f"Side: {position['side']}\n"
             result_str += f"Size: {position['size']}\n"
             result_str += f"Entry Price: {position['entryPrice']}\n"
-            result_str += f"SL: {oracles_all_symbols.get(position['market']+'_STOP_LIMIT')}\n"
-            result_str += f"TP: {oracles_all_symbols.get(position['market']+'_TAKE_PROFIT')}\n"
             current_price = oracles_all_symbols.get(position['market'])
             result_str += f"Current Price: {current_price}\n"
+            result_str += f"SL: {oracles_all_symbols.get(position['market']+'_STOP_LIMIT')}\n"
+            result_str += f"TP: {oracles_all_symbols.get(position['market']+'_TAKE_PROFIT')}\n"
             result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
             created_at = datetime.fromisoformat(position['createdAt'].replace("Z", "+00:00"))
             created_at_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
