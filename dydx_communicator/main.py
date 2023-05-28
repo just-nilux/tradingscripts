@@ -136,7 +136,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
     
     keys_to_delete = []
     for key in detectors.keys():
-        symbol, timeframe, _ = key.split("_", 2)
+        symbol, timeframe, _ = key.split("_")
         if symbol not in current_symbols or timeframe not in current_timeframes:
             keys_to_delete.append(key)
 
@@ -146,7 +146,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
     keys_to_delete = []
     for key in atrs.keys():
-        symbol, timeframe, _ = key.split("_", 2)
+        symbol, timeframe = key.split("_")
         if symbol not in current_symbols or timeframe not in current_timeframes:
             keys_to_delete.append(key)
 
