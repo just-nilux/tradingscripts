@@ -133,10 +133,10 @@ def initialize_detectors(client, detectors=None, atrs=None):
     # Cleanup step
     current_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
     current_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-
+    
     keys_to_delete = []
     for key in detectors.keys():
-        symbol, timeframe, _ = key.split("_")
+        symbol, timeframe, _ = key.split("_", 2)
         if symbol not in current_symbols or timeframe not in current_timeframes:
             keys_to_delete.append(key)
 
@@ -146,7 +146,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
     keys_to_delete = []
     for key in atrs.keys():
-        symbol, timeframe = key.split("_")
+        symbol, timeframe, _ = key.split("_", 2)
         if symbol not in current_symbols or timeframe not in current_timeframes:
             keys_to_delete.append(key)
 
