@@ -265,10 +265,10 @@ class DydxClient:
         atr_value = atr * 1
         
         if side == 'BUY':
-            stop_loss = trigger_candle.Low - atr_value
+            stop_loss = trigger_candle.low - atr_value
             take_profit = price + (price - stop_loss) * risk_to_reward_ratio
         elif side == "SELL":
-            stop_loss = trigger_candle.High + atr_value
+            stop_loss = trigger_candle.high + atr_value
             take_profit = price - (stop_loss - price) * risk_to_reward_ratio
 
         take_profit = round(take_profit / tick_size) * tick_size
