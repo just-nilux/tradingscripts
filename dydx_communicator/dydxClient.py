@@ -119,38 +119,6 @@ class DydxClient:
         
 
 
-    def format_positions_data(self, positions_data, oracles_all_symbols) -> str:
-        """
-        Format positions data into a string.
-
-        Args:
-            positions_data (dict): The positions data to format.
-
-        Returns:
-            str: Formatted positions data.
-        """
-        if not positions_data or not positions_data.get('positions'):
-            return "No open positions"
-
-        result_str = ""
-        for position in positions_data.get('positions', []):
-            result_str += f"\n\nMarket: {position['market']}\n"
-            result_str += f"Side: {position['side']}\n"
-            result_str += f"Size: {position['size']}\n"
-            result_str += f"Entry Price: {position['entryPrice']}\n"
-            current_price = oracles_all_symbols.get(position['market'])
-            result_str += f"Current Price: {current_price}\n"
-            result_str += f"SL: {oracles_all_symbols.get(position['market']+'_STOP_LIMIT')}\n"
-            result_str += f"TP: {oracles_all_symbols.get(position['market']+'_TAKE_PROFIT')}\n"
-            result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
-            created_at = datetime.fromisoformat(position['createdAt'].replace("Z", "+00:00"))
-            created_at_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
-            result_str += f"Created At: {created_at_str}\n"
-        
-        return result_str
-
-
-
     def fetch_all_open_position(self, symbol=None) -> str:
         """
         Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
@@ -164,31 +132,56 @@ class DydxClient:
 
         """
         try:
-            if symbol is None:
-                positions_data = self.client.private.get_positions(status='OPEN').data
-            elif isinstance(symbol, str):
-                positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data
-            
+            # Fetch positions and orders data
+            positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
+            orders_data = self.client.private.get_orders().data['orders']
 
-            orders = self.client.private.get_orders().data['orders']
-            oracles_all_symbols = dict()
+            # Build a dictionary of oracle prices, stop limit and take profit prices for each market
+            market_prices = {
+                position['market']: {
+                    'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
+                    'STOP_LIMIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
+                    'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                }
+                for position in positions_data['positions']
+            }
 
-            for position in positions_data['positions']:
-                sym = position['market']
-                oracles_all_symbols.update({sym: self.client.public.get_markets(sym).data['markets'][sym]['oraclePrice']})
-
-                for order in orders:
-                    if order['market'] == sym:
-                        if order['type'] == 'TAKE_PROFIT':
-                            oracles_all_symbols.update({sym+'_TAKE_PROFIT' : order['price']})
-                        elif order['type'] == 'STOP_LIMIT':
-                            oracles_all_symbols.update({sym+'_STOP_LIMIT' : order['triggerPrice']})
-
- 
-            return self.format_positions_data(positions_data, oracles_all_symbols)
+            return self.format_positions_data(positions_data, market_prices)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
+
+
+    def format_positions_data(self, positions_data, market_prices) -> str:
+        """
+        Format positions data into a string.
+
+        Args:
+            positions_data (dict): The positions data to format.
+            market_prices (dict): A dictionary of oracle prices, stop limit and take profit prices for each market.
+
+        Returns:
+            str: Formatted positions data.
+        """
+        if not positions_data or not positions_data.get('positions'):
+            return "No open positions"
+
+        results = []
+        for position in positions_data.get('positions', []):
+            current_prices = market_prices.get(position['market'], {})
+            results.append(
+                f"\n\nMarket: {position['market']}\n"
+                f"Side: {position['side']}\n"
+                f"Size: {position['size']}\n"
+                f"Entry Price: {position['entryPrice']}\n"
+                f"SL: {current_prices.get('STOP_LIMIT')}\n"
+                f"TP: {current_prices.get('TAKE_PROFIT')}\n"
+                f"Current Price: {current_prices.get('oracle')}\n"
+                f"Unrealized PnL: {position['unrealizedPnl']}\n"
+                f"Created At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
+        return "".join(results)
+
 
 
 
