@@ -177,73 +177,70 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
-def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration):
+def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df):
+    
     current_time = datetime.datetime.now()
     minutes = current_time.minute
+    timeframe_minutes = timeframe_to_minutes(timeframe)
 
+    if not (minutes % timeframe_minutes):
 
-    for (symbol, timeframe), df in all_symbol_df.items():
-
-        timeframe_minutes = timeframe_to_minutes(timeframe)
-
-        if not (minutes % timeframe_minutes):
-
-            # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
-            if first_iteration:
-                for _, candle in df.iterrows():
-                    atr = atrs[f"{symbol}_{timeframe}"]
-                    atr.add_input_value(candle)
-                    if not atr:
-                        logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-                last_closed_candle = df.iloc[-1]
-            else:
-                last_closed_candle = df.iloc[-1]
+        # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
+        if first_iteration:
+            for _, candle in df.iterrows():
                 atr = atrs[f"{symbol}_{timeframe}"]
-                atr.add_input_value(last_closed_candle)
-               
+                atr.add_input_value(candle)
+                if not atr:
+                    logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+            last_closed_candle = df.iloc[-1]
+        else:
+            last_closed_candle = df.iloc[-1]
+            atr = atrs[f"{symbol}_{timeframe}"]
+            atr.add_input_value(last_closed_candle)
            
+       
 
-            # fetch support and resistance levels
-            support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
-            
-            
-            for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
-                strategy_function = globals()[strategy_function_name]
-                detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
-                detector = detectors[detector_key]
+        # fetch support and resistance levels
+        support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
+        
+        
+        for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
+            strategy_function = globals()[strategy_function_name]
+            detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
+            detector = detectors[detector_key]
 
 
-                try:
-                    logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
-                    if strategy_function_name == "doubleBottomEntry":
-                        signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
+            try:
+                logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
+                if strategy_function_name == "doubleBottomEntry":
+                    signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-                    elif strategy_function_name == "doubleTopEntry":
-                        signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                elif strategy_function_name == "doubleTopEntry":
+                    signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                
+                elif strategy_function_name == "liqSweepEntry":
+                    signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
+
+            except Exception as e:
+                logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
+           
+            try:
+                
+                if signal[1] in ('SELL', 'BUY'):
+                    logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
+
+                    size = float(client.order_size(symbol, client.config['position_size']))
+                    logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                     
-                    elif strategy_function_name == "liqSweepEntry":
-                        signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
+                    order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
 
-                except Exception as e:
-                    logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
-               
-                try:
-                    
-                    if signal[1] in ('SELL', 'BUY'):
-                        logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
+                elif signal[1] is None:
+                    logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
+                else:
+                    logger.warning(f"Invalid signal: {signal[1]}")
 
-                        size = float(client.order_size(symbol, client.config['position_size']))
-                        logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
-                        
-                        order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-
-                    elif signal[1] is None:
-                        logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
-                    else:
-                        logger.warning(f"Invalid signal: {signal[1]}")
-
-                except Exception as e:
-                    logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
+            except Exception as e:
+                logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
 
 
 
@@ -280,8 +277,9 @@ def execute_main(client, json_file_path, liq_levels):
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
 
         all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
-     
-        execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first_iteration)
+
+        for (symbol, timeframe), df in all_symbol_df.items():
+            execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
         check_liquidation_zone(liq_levels, client)
 
