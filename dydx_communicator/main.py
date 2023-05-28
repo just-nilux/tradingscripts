@@ -1,3 +1,4 @@
+from set_strategy_entry_obj import doubleTopEntry, doubleBottomEntry, liqSweepEntry
 from strategies.double_bottom_detector import DoubleBottomDetector
 from strategies.double_top_detector import DoubleTopDetector
 from strategies.liq_sweep_detector import SweepDetector
@@ -158,52 +159,6 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
 
 
-
-
-def doubleTopEntry(last_closed_candle, detector, ressist_zone_upper, ressist_zone_lower):
-
-    logger.debug(f"Executing doubleTopEntry for detector {detector}")
-
-    detector.resistance_zone_upper = ressist_zone_upper
-    detector.resistance_zone_lower = ressist_zone_lower
-    detector.current_row = last_closed_candle
-    res = detector.detect()
-
-    if isinstance(res, tuple) and res[1] == 'SELL':
-        return res
-    return (None, None)
-
-
-
-def doubleBottomEntry(last_closed_candle, detector, support_zone_upper, support_zone_lower):
-
-    logger.debug(f"Executing doubleBottomEntry for detector {detector}")
-
-    detector.support_zone_upper = support_zone_upper
-    detector.support_zone_lower = support_zone_lower
-    detector.current_row = last_closed_candle
-    res = detector.detect()
-
-    if isinstance(res, tuple) and res[1] == 'BUY':
-        return res
-    return (None, None)
-
-
-def liqSweepEntry(last_closed_candle, detector, upper_liq_level, lower_liq_level):
-
-    logger.debug(f"Executing LiqSweepEntry strategy for {detector}")
-
-    detector.upper_liq_level = upper_liq_level
-    detector.lower_liq_level = lower_liq_level
-    detector.current_row = last_closed_candle
-    res = detector.detect()
-
-    if isinstance(res, tuple) and res[1] in ('BUY', 'SELL'):
-        return res
-    return (None, None)
-
-
-
 def fetch_support_resistance(symbol, liq_levels):
 
     # fetch support and resistance levels
@@ -232,18 +187,17 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
         timeframe_minutes = timeframe_to_minutes(timeframe)
 
         if not (minutes % timeframe_minutes):
-            candles = df
 
             # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
             if first_iteration:
-                for _, candle in candles.iterrows():
+                for _, candle in df.iterrows():
                     atr = atrs[f"{symbol}_{timeframe}"]
                     atr.add_input_value(candle)
                     if not atr:
                         logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-                last_closed_candle = candles.iloc[-1]
+                last_closed_candle = df.iloc[-1]
             else:
-                last_closed_candle = candles.iloc[-1]
+                last_closed_candle = df.iloc[-1]
                 atr = atrs[f"{symbol}_{timeframe}"]
                 atr.add_input_value(last_closed_candle)
                
