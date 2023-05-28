@@ -170,7 +170,7 @@ class DydxClient:
 
 
     def get_open_orders(self):
-        response = self.client.private.get_orders(status='OPEN').data
+        response = self.client.private.get_orders().data
         return response
 
 
