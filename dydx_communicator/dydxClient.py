@@ -182,7 +182,7 @@ class DydxClient:
                         if order['type'] == 'TAKE_PROFIT':
                             oracles_all_symbols.update({sym+'_TAKE_PROFIT' : order['price']})
                         elif order['type'] == 'STOP_LIMIT':
-                            oracles_all_symbols.update({sym+'_STOP_LIMIT' : order['price']})
+                            oracles_all_symbols.update({sym+'_STOP_LIMIT' : order['triggerPrice']})
 
  
             return self.format_positions_data(positions_data, oracles_all_symbols)
