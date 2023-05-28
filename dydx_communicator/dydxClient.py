@@ -162,15 +162,16 @@ class DydxClient:
 
         """
         try:
-            all_symbols = self.fetch_all_symbols()
-            oracles_all_symbols = dict()
-            for sym in all_symbols:
-                oracles_all_symbols.update({sym: self.client.public.get_markets(sym).data['markets'][sym]['oraclePrice']})
             if symbol is None:
                 positions_data = self.client.private.get_positions(status='OPEN').data
             elif isinstance(symbol, str):
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data
-
+            
+            oracles_all_symbols = dict()
+            for position in positions_data['positions']:
+                sym = position['market']
+                oracles_all_symbols.update({sym: self.client.public.get_markets(sym).data['markets'][sym]['oraclePrice']})
+ 
             return self.format_positions_data(positions_data, oracles_all_symbols)
 
         except Exception as e:
