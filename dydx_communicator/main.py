@@ -248,7 +248,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, all_symbol_df, first
 
 
 
-def execute_main(client, json_file_path, liq_levels, detectors):
+def execute_main(client, json_file_path, liq_levels):
     detectors, atrs = initialize_detectors(client)
 
     # Initialize the last hash as an empty string
@@ -299,7 +299,7 @@ def main():
     client = DydxClient()
 
     # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list), initialize_detectors(client)))
+    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list)))
     bot_thread.start()
 
     # Run the bot in the main thread
