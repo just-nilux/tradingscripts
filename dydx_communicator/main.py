@@ -177,8 +177,11 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
+
+
+
 def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df):
-    
+
     current_time = datetime.datetime.now()
     minutes = current_time.minute
     timeframe_minutes = timeframe_to_minutes(timeframe)
@@ -266,18 +269,19 @@ def execute_main(client, json_file_path, liq_levels):
 
         res = process_json_file(json_file_path)
 
+        # update active symbols & update entryStrat obj:
         if res is not None:
             liq_levels = res
             symbols_modified = update_config_with_symbols(liq_levels, client)
             if symbols_modified:
                 detectors, atrs = initialize_detectors(client, detectors, atrs)
 
-        # create unique sets of all symbols and timeframes
+        # create unique sets of all symbols and timeframes & fetch df for each:
         all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
         all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-
         all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
 
+        # execute strategy
         for (symbol, timeframe), df in all_symbol_df.items():
             execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
