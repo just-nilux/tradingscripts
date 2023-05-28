@@ -119,7 +119,7 @@ class DydxClient:
         
 
 
-    def format_positions_data(self, positions_data) -> str:
+    def format_positions_data(self, positions_data, oracles_all_symbols) -> str:
         """
         Format positions data into a string.
 
@@ -139,9 +139,11 @@ class DydxClient:
             result_str += f"Size: {position['size']}\n"
             result_str += f"Entry Price: {position['entryPrice']}\n"
             result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
+            current_price = oracles_all_symbols.get(position['market'])
+            result_str += f"Current Price: {current_price}\n"
             created_at = datetime.fromisoformat(position['createdAt'].replace("Z", "+00:00"))
             created_at_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
-            result_str += f"Created At: {created_at_str}"
+            result_str += f"Created At: {created_at_str}\n"
         
         return result_str
 
@@ -160,12 +162,16 @@ class DydxClient:
 
         """
         try:
+            all_symbols = self.fetch_all_symbols()
+            oracles_all_symbols = dict()
+            for sym in all_symbols:
+                oracles_all_symbols.update({sym: self.client.public.get_markets(sym).data['markets'][sym]['oraclePrice']})
             if symbol is None:
                 positions_data = self.client.private.get_positions(status='OPEN').data
             elif isinstance(symbol, str):
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data
 
-            return self.format_positions_data(positions_data)
+            return self.format_positions_data(positions_data, oracles_all_symbols)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
