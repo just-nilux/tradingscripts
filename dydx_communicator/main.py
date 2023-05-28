@@ -1,7 +1,7 @@
 from set_strategy_entry_obj import doubleTopEntry, doubleBottomEntry, liqSweepEntry
-from strategies.double_bottom_detector import DoubleBottomDetector
-from strategies.double_top_detector import DoubleTopDetector
-from strategies.liq_sweep_detector import SweepDetector
+from strategies.doubleBottomEntry import DoubleBottomDetector
+from strategies.doubleTopEntry import DoubleTopDetector
+from strategies.liqSweepEntry import SweepDetector
 from collections import defaultdict
 from dydxClient import DydxClient
 from json_file_processor import process_json_file
