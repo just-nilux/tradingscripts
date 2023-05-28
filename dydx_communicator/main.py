@@ -118,11 +118,11 @@ def initialize_detectors(client, detectors=None, atrs=None):
                     key = f"{symbol}_{timeframe}_{strategy_function}"
                     
                     if key not in detectors:
-                        if strategy_function == "double_bottom_strat":
+                        if strategy_function == "doubleBottomEntry":
                             detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                        elif strategy_function == "double_top_strat":
+                        elif strategy_function == "doubleTopEntry":
                             detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                        elif strategy_function == "liq_sweep_detector":
+                        elif strategy_function == "liqSweepEntry":
                             detectors[key] = SweepDetector(n_periods_to_confirm_sweep=5, cross_pct_threshold=0.2)
                         else:
                             logger.error(f"Unsupported strategy function: {strategy_function}")
