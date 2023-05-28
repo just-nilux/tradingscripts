@@ -1,6 +1,7 @@
 import json
 import decimal
 import pandas as pd
+from datetime import datetime
 
 from time import time
 from time import sleep
@@ -138,7 +139,9 @@ class DydxClient:
             result_str += f"Size: {position['size']}\n"
             result_str += f"Entry Price: {position['entryPrice']}\n"
             result_str += f"Unrealized PnL: {position['unrealizedPnl']}\n"
-            result_str += f"Created At: {position['createdAt']}"
+            created_at = datetime.fromisoformat(position['createdAt'].replace("Z", "+00:00"))
+            created_at_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
+            result_str += f"Created At: {created_at_str}"
         
         return result_str
 
