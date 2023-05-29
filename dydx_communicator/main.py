@@ -290,6 +290,11 @@ def execute_main(client, json_file_path, liq_levels):
         # Cancels all orders for trading pairs which don't have an open position:
         client.purge_no_pos_orders()
 
+        msg = client.send_tg_msg_when_trade_closed()
+        if msg:
+            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+
+
         first_iteration = False
 
         # Sleep for some time before executing the strategies again (e.g., 60 seconds)

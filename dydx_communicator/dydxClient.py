@@ -31,7 +31,6 @@ class DydxClient:
         self.logger = setup_logger(__name__)
 
 
-
         self.client, self.position_id = self.initialize_dydx_client(
             self.api_key,
             self.secret_key,
@@ -39,6 +38,8 @@ class DydxClient:
             self.stark_private_key,
             self.default_ethereum_address
         )
+
+        self.no_of_trades = len(self.client.private.get_positions(status='Closed').data['positions'])
 
     
     def initialize_dydx_client(self, api_key: str, secret_key: str, passphrase: str, stark_priv_key:str, eth_address: str) -> Tuple[Client, str]:
@@ -77,7 +78,47 @@ class DydxClient:
         except Exception as e:
             self.logger.error(f"An error occurred while initialize dydx client: {e}")
             return None
+
+
+    def send_tg_msg_when_trade_closed(self):
+        """
+        Checks if a trade has been closed since the last check. If a trade has been closed, 
+        it formats the relevant information about the trade into a message and returns it.
+        The message can then be sent to Telegram or used for other purposes.
+    
+        Returns:
+            str: A formatted message containing information about the closed trade, 
+            or None if no trade has been closed since the last check.
+        """
+
+        init_no_of_historical_trade = self.no_of_trades
+
+        current_no_of_historical_trade = len(self.client.private.get_positions(status='Closed').data['positions'])
+
+        if current_no_of_historical_trade < init_no_of_historical_trade:
+            return
         
+        else:
+            position = self.client.private.get_positions(status='Closed').data['positions'][0]
+
+            msg = (
+                f"*** TRADE CLOSED ***\n"
+                f"Created At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Closed At: {datetime.fromisoformat(position['closedAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Market: {position['market']}\n"
+                f"Status: {position['status']}\n"
+                f"Side: {position['side']}\n"
+                f"Size: {position['size']}\n"
+                f"Entry Price: {position['entryPrice']}\n"
+                f"Exit Price: {position['exitPrice']}\n"
+                #f"Unrealized PnL: {position['unrealizedPnl']}\n"
+                f"Realized PnL: {position['realizedPnl']}\n"
+                #f"Net Funding: {position['netFunding']}\n"
+            )
+
+            return msg
+        
+
 
 
 
