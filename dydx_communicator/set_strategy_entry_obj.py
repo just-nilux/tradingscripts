@@ -16,7 +16,7 @@ def doubleTopEntry(last_closed_candle, detector, ressist_zone_upper, ressist_zon
 
     if isinstance(res, tuple) and res[1] == 'SELL':
         return res
-    return (None, None)
+    return (None, None, None)
 
 
 
@@ -31,7 +31,7 @@ def doubleBottomEntry(last_closed_candle, detector, support_zone_upper, support_
 
     if isinstance(res, tuple) and res[1] == 'BUY':
         return res
-    return (None, None)
+    return (None, None, None)
 
 
 def liqSweepEntry(last_closed_candle, detector, upper_liq_level, lower_liq_level):
@@ -45,6 +45,6 @@ def liqSweepEntry(last_closed_candle, detector, upper_liq_level, lower_liq_level
 
     if isinstance(res, tuple) and res[1] in ('BUY', 'SELL'):
         return res
-    return (None, None)
+    return (None, None, None)
 
 

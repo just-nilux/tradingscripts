@@ -2,6 +2,7 @@ from set_strategy_entry_obj import doubleTopEntry, doubleBottomEntry, liqSweepEn
 from strategies.doubleBottomEntry import DoubleBottomDetector
 from strategies.doubleTopEntry import DoubleTopDetector
 from strategies.liqSweepEntry import SweepDetector
+from position_storage import PositionStorage
 from collections import defaultdict
 from dydxClient import DydxClient
 from json_file_processor import process_json_file
@@ -236,7 +237,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-                    return order
+                    return order, signal[2]
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
@@ -248,73 +249,83 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
 
 
 
-def execute_main(client, json_file_path, liq_levels):
-    detectors, atrs = initialize_detectors(client)
+def execute_main(client, json_file_path, liq_levels, position_storage):
 
-    # Initialize the last hash as an empty string
-    process_json_file.last_hash = ''
+    try:
+        detectors, atrs = initialize_detectors(client)
 
-    # Initialize first_iteration as True
-    first_iteration = True
+        # Initialize the last hash as an empty string
+        process_json_file.last_hash = ''
 
-    while True:
-        # Get the current time
-        current_time = datetime.datetime.now()
+        # Initialize first_iteration as True
+        first_iteration = True
 
-        # Calculate the remaining seconds until the next minute
-        remaining_seconds = 60 - current_time.second
+        while True:
+            # Get the current time
+            current_time = datetime.datetime.now()
 
-        # Sleep for the remaining seconds
-        time.sleep(remaining_seconds)
+            # Calculate the remaining seconds until the next minute
+            remaining_seconds = 60 - current_time.second
 
-        res = process_json_file(json_file_path)
+            # Sleep for the remaining seconds
+            time.sleep(remaining_seconds)
 
-        # update active symbols & update entryStrat obj:
-        if res is not None:
-            liq_levels = res
-            symbols_modified = update_config_with_symbols(liq_levels, client)
-            if symbols_modified:
-                detectors, atrs = initialize_detectors(client, detectors, atrs)
+            res = process_json_file(json_file_path)
 
-        # create unique sets of all symbols and timeframes & fetch df for each:
-        all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
-        all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-        all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
+            # update active symbols & update entryStrat obj:
+            if res is not None:
+                liq_levels = res
+                symbols_modified = update_config_with_symbols(liq_levels, client)
+                if symbols_modified:
+                    detectors, atrs = initialize_detectors(client, detectors, atrs)
 
-        # execute strategy
-        for (symbol, timeframe), df in all_symbol_df.items():
-            order = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
-            if order:
-                msg = client.send_tg_msg_when_pos_opened()
+            # create unique sets of all symbols and timeframes & fetch df for each:
+            all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
+            all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
+            all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
+
+            # execute strategy
+            for (symbol, timeframe), df in all_symbol_df.items():
+                order, entry_strat = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+                if order:
+                    msg = client.send_tg_msg_when_pos_opened()
+                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                    position_storage.insert_position(client.private.get_positions(status='Open').data['positions'][0], entry_strat)
+
+
+
+
+            check_liquidation_zone(liq_levels, client)
+            
+            # Cancels all orders for trading pairs which don't have an open position:
+            client.purge_no_pos_orders()
+
+            msg = client.send_tg_msg_when_trade_closed()
+            if msg:
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
+            first_iteration = False
 
-        check_liquidation_zone(liq_levels, client)
-        
-        # Cancels all orders for trading pairs which don't have an open position:
-        client.purge_no_pos_orders()
+            # Sleep for some time before executing the strategies again (e.g., 60 seconds)
+            logger.debug("Sleeping untill next minute")
 
-        msg = client.send_tg_msg_when_trade_closed()
-        if msg:
-            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
-
-
-        first_iteration = False
-
-        # Sleep for some time before executing the strategies again (e.g., 60 seconds)
-        logger.debug("Sleeping untill next minute")
-
-        # Sleep for 1 second to ensure it runs at the beginning of the minute
-        time.sleep(1)
+            # Sleep for 1 second to ensure it runs at the beginning of the minute
+            time.sleep(1)
+            
+    finally:
+        position_storage.close()
 
 
 def main():
     logger.info("Initializing detectors")
     client = DydxClient()
 
+    # Initialize PositionStorage
+    position_storage = PositionStorage('positions.db')
+
     # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list)))
+    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list), position_storage))
     bot_thread.start()
 
     # Run the bot in the main thread

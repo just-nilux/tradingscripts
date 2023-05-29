@@ -117,7 +117,7 @@ class DoubleBottomDetector:
                 elif self.current_row.low <= self.buy_zone[0]:
                     self.logger.info(f"Price in buy zone: {self.current_row.Index}")
                     self.reset()
-                    return (self.current_row, "BUY")
+                    return (self.current_row, "BUY", "Double Bottom Entry")
 
             else:
 
