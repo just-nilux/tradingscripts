@@ -254,7 +254,7 @@ class DydxClient:
             sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
 
             results.append(
-                f"\n\Opened: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"\n\nOpened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"Market: {position['market']}\n"
                 f"Side: {position['side']}\n"
                 f"Size: {position['size']}\n"
