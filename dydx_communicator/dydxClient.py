@@ -215,20 +215,19 @@ class DydxClient:
             if first_position and not symbol:
                 positions_data = self.client.private.get_positions(status='OPEN').data
 
-                 # Build a dictionary of oracle prices, stop limit and take profit prices for each market
+                # Get the first open position
+                first_position = positions_data['positions'][0]
+
+                # Build a dictionary of oracle prices, stop limit and take profit prices for the market of the first open position
                 market_prices = {
-                    position['market']: {
-                        'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
-                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
-                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                    first_position['market']: {
+                        'oracle': self.client.public.get_markets(first_position['market']).data['markets'][first_position['market']]['oraclePrice'],
+                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'STOP_LIMIT'), None),
+                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'TAKE_PROFIT'), None)
                     }
-                    for position in positions_data['positions'][0]
                 }
-                print(positions_data)
-                print(market_prices)
                 return self.format_positions_data(positions_data, market_prices)
             
-
             else:
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
             
