@@ -272,7 +272,7 @@ class DydxClient:
             sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
 
             # Set the optional string based on the 'first_position' flag
-            first_position_string = "*** OPENED POSITION ***\n" if first_position else ""
+            first_position_string = "\n*** OPENED POSITION ***\n" if first_position else ""
 
             results.append(
                 f"{first_position_string}"
