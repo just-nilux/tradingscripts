@@ -210,24 +210,38 @@ class DydxClient:
         """
         try:
             # Fetch positions and orders data
+            orders_data = self.client.private.get_orders().data['orders']
+
             if first_position and not symbol:
-                positions_data = self.client.private.get_positions(status='Open').data['positions'][0]
+                positions_data = self.client.private.get_positions(status='Open').data
+
+                 # Build a dictionary of oracle prices, stop limit and take profit prices for each market
+                market_prices = {
+                    position['market']: {
+                        'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
+                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
+                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                    }
+                    for position in positions_data['positions'][0]
+                }
+
+                return self.format_positions_data(positions_data, market_prices)
+            
+            
             else:
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
             
-            orders_data = self.client.private.get_orders().data['orders']
-
-            # Build a dictionary of oracle prices, stop limit and take profit prices for each market
-            market_prices = {
-                position['market']: {
-                    'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
-                    'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
-                    'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                # Build a dictionary of oracle prices, stop limit and take profit prices for each market
+                market_prices = {
+                    position['market']: {
+                        'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
+                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
+                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                    }
+                    for position in positions_data['positions']
                 }
-                for position in positions_data['positions']
-            }
 
-            return self.format_positions_data(positions_data, market_prices)
+                return self.format_positions_data(positions_data, market_prices)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
