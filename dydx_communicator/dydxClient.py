@@ -107,8 +107,8 @@ class DydxClient:
             purge_symbols = list(set(symbols_orders) - set(symbols_pos))
             for sym in purge_symbols:
                 res = self.client.private.cancel_all_orders(sym).data
-
-            return res
+                self.logger.info(f'remaining open orders for {sym} have been cancelled - not in position anymore')
+        
         except Exception as e:
             self.logger.error(f"An error occurred while fetching all symbols: {e}")
             return None
