@@ -47,7 +47,7 @@ def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         ["Active Symbols", "Active Strategies"],
         ["Open Positions", "Open Orders"],
-        ['Account Equity']
+        ['Account Equity', "Algo Stats"]
     ]
 
     reply_markup = ReplyKeyboardMarkup(keyboard)
@@ -125,6 +125,12 @@ def process_response(update: Update, context: CallbackContext):
             update.message.reply_text(text=f"*** Open Orders: ***\n\n{text}")
         else:
             update.message.reply_text(text="No open orders.")
+
+
+    elif response == "Algo Stats":
+            update.message.reply_text(text="Comming soon......")
+
+
 
 
 
