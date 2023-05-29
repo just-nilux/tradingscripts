@@ -236,7 +236,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-
+                    return order
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
@@ -283,7 +283,12 @@ def execute_main(client, json_file_path, liq_levels):
 
         # execute strategy
         for (symbol, timeframe), df in all_symbol_df.items():
-            execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+            order = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+            if order:
+                msg = client.send_tg_msg_when_pos_opened()
+                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+
+
 
         check_liquidation_zone(liq_levels, client)
         

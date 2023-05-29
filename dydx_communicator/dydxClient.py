@@ -455,4 +455,33 @@ class DydxClient:
         except Exception as e:
             self.logger.error(f"An error occurred while placing the market order: {e}")
             return None
+        
+
+
+    def send_tg_msg_when_pos_opened(self):
+        """
+        Formats the relevant information about a newly opened trade into a message 
+        and returns it. The message can then be sent to Telegram or used for other purposes.
+
+        Returns:
+            str: A formatted message containing information about the opened trade.
+        """
+
+        position = self.client.private.get_positions(status='Open').data['positions'][0]
+
+        msg = (
+            f"*** TRADE OPENED ***\n"
+            f"Opened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Market: {position['market']}\n"
+            f"Status: {position['status']}\n"
+            f"Side: {position['side']}\n"
+            f"Size: {position['maxSize']}\n"
+            f"Entry Price: {position['entryPrice']}\n"
+            f"Unrealized PnL: {position['unrealizedPnl']}\n"
+        )
+
+        return msg
+
+
+
             
