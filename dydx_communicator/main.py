@@ -242,10 +242,10 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
                     logger.warning(f"Invalid signal: {signal[1]}")
-                print('hey')
-                return None, None
+                
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
+    return None, None
 
 
 
