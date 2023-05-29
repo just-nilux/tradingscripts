@@ -245,6 +245,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
+
     return None, None
 
 
@@ -291,7 +292,7 @@ def execute_main(client, json_file_path, liq_levels, position_storage):
                 if order:
                     msg = client.send_tg_msg_when_pos_opened()
                     send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
-                    position_storage.insert_position(client.private.get_positions(status='Open').data['positions'][0], entry_strat)
+                    position_storage.insert_position(client.client.private.get_positions(status='Open').data['positions'][0], entry_strat)
 
 
 
