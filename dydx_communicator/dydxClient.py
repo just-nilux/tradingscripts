@@ -226,7 +226,7 @@ class DydxClient:
                         'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'TAKE_PROFIT'), None)
                     }
                 }
-                return self.format_positions_data(positions_data, market_prices)
+                return self.format_positions_data(positions_data, market_prices, first_position)
             
             else:
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
@@ -247,7 +247,7 @@ class DydxClient:
             return "An error occurred while fetching open positions"
 
 
-    def format_positions_data(self, positions_data, market_prices) -> str:
+    def format_positions_data(self, positions_data, market_prices, first_position) -> str:
         """
         Format positions data into a string.
 
@@ -271,8 +271,12 @@ class DydxClient:
             tp_percent_change = ((tp_price - entry_price) / entry_price) * 100 if entry_price else None
             sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
 
+            # Set the optional string based on the 'first_position' flag
+            first_position_string = "*** OPENED POSITION ***\n" if first_position else ""
+
             results.append(
-                f"\n\nOpened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"{first_position_string}"
+                f"\nOpened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"Market: {position['market']}\n"
                 f"Side: {position['side']}\n"
                 f"Size: {position['size']}\n"
@@ -283,7 +287,6 @@ class DydxClient:
                 f"Unrealized PnL: {position['unrealizedPnl']}\n"
             )
         return "".join(results)
-
 
 
 
