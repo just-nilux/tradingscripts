@@ -39,7 +39,7 @@ class DydxClient:
             self.default_ethereum_address
         )
 
-        self.no_of_trades = len(self.client.private.get_positions(status='Closed').data['positions'])
+        self.init_no_of_trades = len(self.client.private.get_positions(status='Closed').data['positions'])
 
     
     def initialize_dydx_client(self, api_key: str, secret_key: str, passphrase: str, stark_priv_key:str, eth_address: str) -> Tuple[Client, str]:
@@ -91,15 +91,14 @@ class DydxClient:
             or None if no trade has been closed since the last check.
         """
 
-        init_no_of_historical_trade = self.no_of_trades
 
         current_no_of_historical_trade = len(self.client.private.get_positions(status='Closed').data['positions'])
 
-        if current_no_of_historical_trade == init_no_of_historical_trade:
+        if current_no_of_historical_trade == self.init_no_of_trades:
             return
         
-        elif current_no_of_historical_trade > init_no_of_historical_trade:
-            init_no_of_historical_trade +=1
+        elif current_no_of_historical_trade > self.init_no_of_trades:
+            self.init_no_of_trades +=1
             position = self.client.private.get_positions(status='Closed').data['positions'][0]
 
             msg = (

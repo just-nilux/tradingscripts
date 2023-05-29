@@ -72,7 +72,7 @@ def process_response(update: Update, context: CallbackContext):
                     message = f"Symbol: {symbol} \nTimeframes: {', '.join(timeframes)}\n"
                     messages.append(message)
                 text = "\n".join(messages)
-                update.message.reply_text(text=f"Active Symbols: \n{text}")
+                update.message.reply_text(text=f"*** Active Symbols: ***\n{text}")
             else:
                 update.message.reply_text(text=f"No active symbols or timeframes found.")
                 
@@ -86,7 +86,7 @@ def process_response(update: Update, context: CallbackContext):
                     message = f"- {strategy_func.replace('_', ' ').title()}"
                     messages.append(message)
                 text = "\n".join(messages)
-                update.message.reply_text(text=f"Active Strategies: \n{text}")
+                update.message.reply_text(text=f"*** Active Strategies: ***\n{text}")
             else:
                 update.message.reply_text(text=f"No active strategies found.")
 
@@ -102,7 +102,7 @@ def process_response(update: Update, context: CallbackContext):
     elif response == 'Account Equity':
         acc_equity = client.fetch_free_equity()
         if acc_equity is not None:
-            update.message.reply_text(text=f"Account Equity: {round(acc_equity,1)}$")
+            update.message.reply_text(text=f"Account Equity: {round(acc_equity,1)}$ ")
         else:
             update.message.reply_text(text="Failed to fetch account equity.")
 
@@ -122,7 +122,7 @@ def process_response(update: Update, context: CallbackContext):
                 message = f"Symbol: {order['market']}\nType: {order['market']}\nOrder Type: {order['type']}\nPrice: {order['price']}{trigger_price}\nSize: {order['size']}\n"
                 messages.append(message)
             text = "\n".join(messages)
-            update.message.reply_text(text=f"Open Orders: \n\n{text}")
+            update.message.reply_text(text=f"*** Open Orders: ***\n\n{text}")
         else:
             update.message.reply_text(text="No open orders.")
 
