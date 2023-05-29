@@ -81,6 +81,42 @@ class DydxClient:
 
 
 
+    def purge_no_pos_orders(self):
+        """
+        Cancels all orders for trading pairs which don't have an open position.
+
+        The method fetches all open positions and all orders, determines the trading pairs 
+        (symbols) for which there are orders but no open positions, and cancels all such orders. 
+
+        Returns:
+            dict: Response from the cancel_all_orders API call for the last symbol in the purge_symbols list.
+            Returns None if an error occurred during the process.
+
+        Raises:
+            Exception: If an error occurs while fetching positions or orders or cancelling orders, an exception is logged and None is returned.
+        """
+
+        try:
+
+            positions = self.client.private.get_positions(status='Open').data['positions']
+            symbols_pos = [position['market'] for position in positions]
+
+            orders = self.client.private.get_orders().data['orders']
+            symbols_orders = [order['market'] for order in orders]
+            
+            purge_symbols = list(set(symbols_orders) - set(symbols_pos))
+            for sym in purge_symbols:
+                res = self.client.private.cancel_all_orders(sym).data
+
+            return res
+        except Exception as e:
+            self.logger.error(f"An error occurred while fetching all symbols: {e}")
+            return None
+
+
+
+
+
     def fetch_all_symbols(self) -> List[str]:
         """
         Fetches all available market symbols from the dYdX API.

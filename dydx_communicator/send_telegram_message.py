@@ -93,6 +93,9 @@ def process_response(update: Update, context: CallbackContext):
 
     elif response == 'Open Positions':
         positions = client.fetch_all_open_position()
+
+
+        
         update.message.reply_text(text=positions)
 
 

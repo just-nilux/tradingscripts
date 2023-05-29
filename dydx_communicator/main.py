@@ -286,6 +286,9 @@ def execute_main(client, json_file_path, liq_levels):
             execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
         check_liquidation_zone(liq_levels, client)
+        
+        # Cancels all orders for trading pairs which don't have an open position:
+        client.purge_no_pos_orders()
 
         first_iteration = False
 
