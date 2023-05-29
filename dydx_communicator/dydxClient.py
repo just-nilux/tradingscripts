@@ -196,7 +196,7 @@ class DydxClient:
         
 
 
-    def fetch_all_open_position(self, symbol=None) -> str:
+    def fetch_all_open_position(self, symbol=None, first_position=False) -> str:
         """
         Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
 
@@ -210,7 +210,11 @@ class DydxClient:
         """
         try:
             # Fetch positions and orders data
-            positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
+            if first_position and not symbol:
+                positions_data = position = self.client.private.get_positions(status='Open').data['positions'][0]
+            else:
+                positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
+            
             orders_data = self.client.private.get_orders().data['orders']
 
             # Build a dictionary of oracle prices, stop limit and take profit prices for each market
@@ -471,20 +475,20 @@ class DydxClient:
             str: A formatted message containing information about the opened trade.
         """
 
-        position = self.client.private.get_positions(status='Open').data['positions'][0]
+        #position = self.client.private.get_positions(status='Open').data['positions'][0]
 
-        msg = (
-            f"*** TRADE OPENED ***\n"
-            f"Opened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"Market: {position['market']}\n"
-            f"Status: {position['status']}\n"
-            f"Side: {position['side']}\n"
-            f"Size: {position['maxSize']}\n"
-            f"Entry Price: {position['entryPrice']}\n"
-            f"Unrealized PnL: {position['unrealizedPnl']}\n"
-        )
+        #msg = (
+        #    f"*** TRADE OPENED ***\n"
+        #    f"Opened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+        #    f"Market: {position['market']}\n"
+        #    f"Status: {position['status']}\n"
+        #    f"Side: {position['side']}\n"
+        #    f"Size: {position['maxSize']}\n"
+        #    f"Entry Price: {position['entryPrice']}\n"
+        #    f"Unrealized PnL: {position['unrealizedPnl']}\n"
+        #)
 
-        return msg
+        return self.fetch_all_open_position(first_position=True)
 
 
 
