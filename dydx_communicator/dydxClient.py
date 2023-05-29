@@ -95,10 +95,11 @@ class DydxClient:
 
         current_no_of_historical_trade = len(self.client.private.get_positions(status='Closed').data['positions'])
 
-        if current_no_of_historical_trade < init_no_of_historical_trade:
+        if current_no_of_historical_trade == init_no_of_historical_trade:
             return
         
         elif current_no_of_historical_trade > init_no_of_historical_trade:
+            init_no_of_historical_trade +=1
             position = self.client.private.get_positions(status='Closed').data['positions'][0]
 
             msg = (
