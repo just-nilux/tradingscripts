@@ -109,7 +109,7 @@ class DydxClient:
                 f"Market: {position['market']}\n"
                 f"Status: {position['status']}\n"
                 f"Side: {position['side']}\n"
-                f"Size: {position['size']}\n"
+                f"Size: {position['maxSize']}\n"
                 f"Entry Price: {position['entryPrice']}\n"
                 f"Exit Price: {position['exitPrice']}\n"
                 #f"Unrealized PnL: {position['unrealizedPnl']}\n"
