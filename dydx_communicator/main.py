@@ -292,7 +292,7 @@ def execute_main(client, json_file_path, liq_levels):
 
         msg = client.send_tg_msg_when_trade_closed()
         if msg:
-            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
         first_iteration = False

@@ -17,7 +17,7 @@ import logging
 logger = setup_logger(__name__)
 
 
-def send_telegram_message(bot_token: str, chat_ids: list, text: str):
+def send_telegram_message(bot_token: str, chat_ids: list, text: str, pass_time_limit = False):
     # get current time in Copenhagen timezone
     now = datetime.datetime.now(pytz.timezone('Europe/Copenhagen'))
     current_hour = now.hour
@@ -28,7 +28,7 @@ def send_telegram_message(bot_token: str, chat_ids: list, text: str):
     is_evening = 18 <= current_hour < 20 or (current_hour == 20 and current_minute <= 30)
 
     # if the current hour is within the allowed time window and the minute is 0, send the messages
-    if not is_nighttime and not is_evening and current_minute == 0:
+    if not is_nighttime and not is_evening and current_minute == 0 or pass_time_limit:
         for chat_id in chat_ids:
             send_text = f'https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&parse_mode=Markdown&text={text}'
             response = requests.get(send_text)
