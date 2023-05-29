@@ -226,7 +226,7 @@ class DydxClient:
                         'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'TAKE_PROFIT'), None)
                     }
                 }
-                return self.format_positions_data(positions_data, market_prices, first_position)
+                return self.format_positions_data(positions_data, market_prices, first_position = True)
             
             else:
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
@@ -505,7 +505,7 @@ class DydxClient:
         #    f"Unrealized PnL: {position['unrealizedPnl']}\n"
         #)
 
-        return self.fetch_all_open_position(first_position=True)
+        return self.fetch_all_open_position()
 
 
 
