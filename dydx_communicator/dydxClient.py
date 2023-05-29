@@ -214,7 +214,6 @@ class DydxClient:
 
             if first_position and not symbol:
                 positions_data = self.client.private.get_positions(status='OPEN').data
-                print(positions_data)
 
                  # Build a dictionary of oracle prices, stop limit and take profit prices for each market
                 market_prices = {
@@ -225,7 +224,8 @@ class DydxClient:
                     }
                     for position in positions_data['positions'][0]
                 }
-
+                print(positions_data)
+                print(market_prices)
                 return self.format_positions_data(positions_data, market_prices)
             
 
