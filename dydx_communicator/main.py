@@ -241,6 +241,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
+                    return None, None
                     logger.warning(f"Invalid signal: {signal[1]}")
 
             except Exception as e:
@@ -312,7 +313,7 @@ def execute_main(client, json_file_path, liq_levels, position_storage):
 
             # Sleep for 1 second to ensure it runs at the beginning of the minute
             time.sleep(1)
-            
+
     finally:
         position_storage.close()
 
