@@ -211,7 +211,7 @@ class DydxClient:
         try:
             # Fetch positions and orders data
             if first_position and not symbol:
-                positions_data = position = self.client.private.get_positions(status='Open').data['positions'][0]
+                positions_data = self.client.private.get_positions(status='Open').data['positions'][0]
             else:
                 positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
             
