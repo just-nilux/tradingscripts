@@ -241,7 +241,7 @@ class DydxClient:
                     for position in positions_data['positions']
                 }
 
-                return self.format_positions_data(positions_data, market_prices)
+                return self.format_positions_data(positions_data, market_prices, first_position)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
