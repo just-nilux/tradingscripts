@@ -213,6 +213,7 @@ class DydxClient:
             sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
 
             results.append(
+                f"Created At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"\n\nMarket: {position['market']}\n"
                 f"Side: {position['side']}\n"
                 f"Size: {position['size']}\n"
@@ -221,7 +222,6 @@ class DydxClient:
                 f"SL: {current_prices.get('STOP_LIMIT')} ({sl_percent_change:.2f}%)\n"
                 f"Current Price: {current_prices.get('oracle')}\n"
                 f"Unrealized PnL: {position['unrealizedPnl']}\n"
-                f"Created At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
         return "".join(results)
 
