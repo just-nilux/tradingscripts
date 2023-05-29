@@ -237,12 +237,12 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-                    return order
+                    return (order, signal[2])
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
                     logger.warning(f"Invalid signal: {signal[1]}")
-
+                return None, None
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
 
@@ -286,11 +286,11 @@ def execute_main(client, json_file_path, liq_levels, position_storage):
 
             # execute strategy
             for (symbol, timeframe), df in all_symbol_df.items():
-                order = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+                order, entry_strat = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
                 if order:
                     msg = client.send_tg_msg_when_pos_opened()
                     send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
-                    #position_storage.insert_position(client.private.get_positions(status='Open').data['positions'][0], entry_strat)
+                    position_storage.insert_position(client.private.get_positions(status='Open').data['positions'][0], entry_strat)
 
 
 
