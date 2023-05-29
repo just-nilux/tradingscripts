@@ -393,6 +393,7 @@ class DydxClient:
 
         """
         try:
+            order_ids = list()
             market_data = self.client.public.get_markets(market=symbol).data
             price = float(market_data['markets'][symbol]['oraclePrice'])
         
@@ -426,6 +427,8 @@ class DydxClient:
             order_response = self.client.private.create_order(**order_params)
             order_id = order_response.data['order']['id']
 
+            order_ids.append(order_id)
+
 
             # Stop-Loss & Take-Profit order:
 
@@ -448,9 +451,10 @@ class DydxClient:
 
                 order_response = self.client.private.create_order(**order_params)
                 order_id = order_response.data['order']['id']
+                order_ids.append(order_id)
 
 
-            #return order_id
+            return order_ids
 
         except Exception as e:
             self.logger.error(f"An error occurred while placing the market order: {e}")
