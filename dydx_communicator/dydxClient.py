@@ -357,7 +357,7 @@ class DydxClient:
             if not 0 < position_size <= 1:
                 raise ValueError("position_size should be a value between 0 and 1")
 
-            free_equity = self.fetch_free_equity() * position_size
+            pos_equity = self.fetch_free_equity() * position_size
             market_data = self.client.public.get_markets(market=symbol).data['markets'][symbol]
             if market_data is None:
                 raise ValueError(f"Market data not found for symbol: {symbol}")
@@ -370,15 +370,16 @@ class DydxClient:
             if min_order_size <= 0:
                 raise ValueError(f"Invalid minimum order size: {min_order_size}")
 
-            calculated_order_size = float(int((int(1 / min_order_size)) * (free_equity / price * leverage)) / int(1 / min_order_size))
+            calculated_order_size = pos_equity / price * leverage
+            if calculated_order_size < min_order_size:
+                raise ValueError(f"Could not reach minimum order size using leverage: {calculated_order_size}")
+
             self.logger.info(f"Calculated order size for {symbol} is {calculated_order_size}")
             return calculated_order_size
 
         except Exception as e:
             self.logger.error(f"Error calculating order size for {symbol}: {e}")
             return None
-
-
 
 
     def calculate_tp_sl(self, price: float, atr: float, side: str, trigger_candle: pd.Series, tick_size: float, risk_to_reward_ratio=None):
