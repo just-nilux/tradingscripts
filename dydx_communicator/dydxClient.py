@@ -438,7 +438,7 @@ class DydxClient:
 
         """
         try:
-            market_data = self.client.public.get_markets(market=symbol).data.get('markets', {}).get(symbol)
+            market_data = self.client.public.get_markets(market=symbol).data
             if market_data is None:
                 raise ValueError(f"Market data not found for symbol: {symbol}")
 
