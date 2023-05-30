@@ -5,10 +5,7 @@
   "dydx_stark_private_key": "0596d82bf1d1768d4cef18672a41a6225866887c7dd3dd6bd266187b558a1f87",
   "dydx_default_ethereum_address": "0x54717a548a8e48fcce4423568bb0826d3f31c3b5",
   "position_size": 0.01,
-  "leverage": {
-    "ETH-USD": 3,
-    "BTC-USD": 3
-  },
+  "leverage": 3,
   "strategies": [
     {
       "symbols": [],

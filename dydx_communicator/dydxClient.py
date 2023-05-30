@@ -350,7 +350,7 @@ class DydxClient:
         It returns this calculated order size.
         """
         try:
-            leverage = self.config['leverage'].get(symbol)
+            leverage = self.config['leverage']
             if leverage is None:
                 raise ValueError(f"Leverage not found for symbol: {symbol}")
 
@@ -438,7 +438,6 @@ class DydxClient:
 
         """
         try:
-            order_ids = list()
             market_data = self.client.public.get_markets(market=symbol).data
             price = float(market_data['markets'][symbol]['oraclePrice'])
         
@@ -472,10 +471,13 @@ class DydxClient:
             order_response = self.client.private.create_order(**order_params)
             order_id = order_response.data['order']['id']
 
-            order_ids.append('ENTRY')
-
+            if not order_id:
+                self.logger.error(f'Order for {symbol} did not go through')
+                return
 
             # Stop-Loss & Take-Profit order:
+            order_ids = list()
+            order_ids.append('ENTRY')
 
             TPSL_ORDER_TYPE = ['TAKE_PROFIT', 'STOP_LIMIT']
             tpsl = self.calculate_tp_sl(price, atr, side, trigger_candle, tick_size)
