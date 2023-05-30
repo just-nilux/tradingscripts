@@ -1,5 +1,6 @@
 import json
 import decimal
+import math
 import pandas as pd
 from datetime import datetime
 
@@ -370,7 +371,10 @@ class DydxClient:
             if min_order_size <= 0:
                 raise ValueError(f"Invalid minimum order size: {min_order_size}")
 
+            step_size = market_data['stepSize']
             calculated_order_size = pos_equity / price * leverage
+            calculated_order_size = step_size * math.floor(calculated_order_size / step_size)
+
             if calculated_order_size < min_order_size:
                 raise ValueError(f"Could not reach minimum order size using leverage: {calculated_order_size}")
 
