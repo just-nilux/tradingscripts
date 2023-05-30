@@ -207,7 +207,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
         
-        
+        signals = list()
         for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
             strategy_function = globals()[strategy_function_name]
             detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
@@ -237,7 +237,10 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
                     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-                    return order, signal[2]
+                    if order and isinstance(order, list):
+                        signals.append((symbol, signal[2]), order)
+
+                    #return signal[2]
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
@@ -245,8 +248,10 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
+        
+        return signals
 
-    return None, None
+    return None
 
 
 
@@ -281,20 +286,29 @@ def execute_main(client, json_file_path, liq_levels, position_storage):
                 if symbols_modified:
                     detectors, atrs = initialize_detectors(client, detectors, atrs)
 
+
             # create unique sets of all symbols and timeframes & fetch df for each:
             all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
             all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
             all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
 
+
             # execute strategy
             for (symbol, timeframe), df in all_symbol_df.items():
-                order, entry_strat = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
-                if order:
-                    msg = client.send_tg_msg_when_pos_opened()
-                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
-                    #position_storage.insert_position(client.client.private.get_positions(status='Open').data['positions'][0], entry_strat)
+                signals = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
 
+            # if signal seng TG msg. for open orders & save info to DB: ( skal stadig laves)
+            if signals and isinstance(signals, list):
+                for signal in signals:
+                    symbol, entry_strat_type , order = signal
+                    if len(order) == 3: 
+                        msg = client.send_tg_msg_when_pos_opened(symbol=symbol) # skal laves om! en slags for indexering.
+                        send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                        position_storage.insert_position(client.client.private.get_positions(symbol=symbol, status='Open').data['positions'][0], entry_strat_type)
+                    else:
+                        # if not both SL / TP orders have been set, close position:
+                        client.cancel_order_by_symbol(symbol)
 
 
             check_liquidation_zone(liq_levels, client)

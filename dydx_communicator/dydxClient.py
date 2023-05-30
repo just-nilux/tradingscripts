@@ -119,6 +119,11 @@ class DydxClient:
             return msg
         
 
+    def cancel_order_by_symbol(self, symbol):
+        self.logger.info(f'remaining open orders for {symbol} have been cancelled')
+        return self.client.private.cancel_all_orders(symbol).data
+
+
 
 
 
@@ -448,7 +453,7 @@ class DydxClient:
             order_response = self.client.private.create_order(**order_params)
             order_id = order_response.data['order']['id']
 
-            order_ids.append(order_id)
+            order_ids.append('ENTRY')
 
 
             # Stop-Loss & Take-Profit order:
@@ -472,7 +477,7 @@ class DydxClient:
 
                 order_response = self.client.private.create_order(**order_params)
                 order_id = order_response.data['order']['id']
-                order_ids.append(order_id)
+                order_ids.append(TPSL_ORDER_TYPE[i])
 
 
             return order_ids
@@ -483,7 +488,7 @@ class DydxClient:
         
 
 
-    def send_tg_msg_when_pos_opened(self):
+    def send_tg_msg_when_pos_opened(self, symbol= None):
         """
         Formats the relevant information about a newly opened trade into a message 
         and returns it. The message can then be sent to Telegram or used for other purposes.
@@ -505,7 +510,7 @@ class DydxClient:
         #    f"Unrealized PnL: {position['unrealizedPnl']}\n"
         #)
 
-        return self.fetch_all_open_position()
+        return self.fetch_all_open_position(symbol=symbol)
 
 
 
