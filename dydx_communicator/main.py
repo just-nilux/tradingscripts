@@ -234,13 +234,13 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
 
                     size = float(client.order_size(symbol, client.config['position_size']))
-                    logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")
-                    
+
+                    logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
+                    
                     if order and isinstance(order, list):
                         signals.append((symbol, signal[2]), order)
 
-                    #return signal[2]
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
                 else:
@@ -248,6 +248,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
+                return signals
         
         return signals
 
