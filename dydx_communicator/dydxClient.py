@@ -358,15 +358,15 @@ class DydxClient:
                 raise ValueError("position_size should be a value between 0 and 1")
 
             free_equity = self.fetch_free_equity() * position_size
-            market_data = self.client.public.get_markets(market=symbol).data.get('markets', {}).get(symbol)
+            market_data = self.client.public.get_markets(market=symbol).data['markets'][symbol]
             if market_data is None:
                 raise ValueError(f"Market data not found for symbol: {symbol}")
 
-            price = float(market_data.get('oraclePrice', 0))
+            price = float(market_data['oraclePrice'])
             if price <= 0:
                 raise ValueError(f"Invalid oracle price: {price}")
 
-            min_order_size = float(market_data.get('minOrderSize', 0))
+            min_order_size = float(market_data['minOrderSize'])
             if min_order_size <= 0:
                 raise ValueError(f"Invalid minimum order size: {min_order_size}")
 
@@ -442,11 +442,11 @@ class DydxClient:
             if market_data is None:
                 raise ValueError(f"Market data not found for symbol: {symbol}")
 
-            price = float(market_data.get('oraclePrice', 0))
+            price = float(market_data['markets'][symbol]['oraclePrice'])
             if price <= 0:
                 raise ValueError(f"Invalid oracle price: {price}")
 
-            tick_size = float(market_data.get('tickSize', 0))
+            tick_size = float(market_data['markets'][symbol]['tickSize'])
             if tick_size <= 0:
                 raise ValueError(f"Invalid tick size: {tick_size}")
 
