@@ -421,9 +421,9 @@ class DydxClient:
         
         return [take_profit, stop_loss]
     
+    
 
-
-    def place_market_order(self, symbol: str, size: float, side: str, atr: float, trigger_candle: pd.Series, percent_slippage=0.003) -> str:
+    def place_market_order(self, symbol: str, size: float, side: str, atr: float, trigger_candle: pd.Series, percent_slippage=0.003) -> Optional[str]:
         """
         Place a market order for a specified symbol, size, and side, considering the specified percent slippage.
 
@@ -434,23 +434,34 @@ class DydxClient:
             percent_slippage (float, optional): The maximum allowed slippage percentage. Defaults to 0.003 (0.3%).
 
         Returns:
-            str: The ID of the created order.
+            Optional[str]: The ID of the created order or None if an error occurred.
 
         """
         try:
-            market_data = self.client.public.get_markets(market=symbol).data
-            price = float(market_data['markets'][symbol]['oraclePrice'])
-        
+            market_data = self.client.public.get_markets(market=symbol).data.get('markets', {}).get(symbol)
+            if market_data is None:
+                raise ValueError(f"Market data not found for symbol: {symbol}")
+
+            price = float(market_data.get('oraclePrice', 0))
+            if price <= 0:
+                raise ValueError(f"Invalid oracle price: {price}")
+
+            tick_size = float(market_data.get('tickSize', 0))
+            if tick_size <= 0:
+                raise ValueError(f"Invalid tick size: {tick_size}")
+
+            if side not in ['BUY', 'SELL']:
+                raise ValueError("Invalid side value. Must be 'BUY' or 'SELL'.")
+
+            # Adjust price based on slippage and side
             if side == 'BUY':
                 price = price * (1 + percent_slippage) # max allowed price incl slippage
                 tpsl_side = 'SELL'
             elif side == 'SELL':
                 price = price * (1 - percent_slippage) # min allowed price incl slippage
                 tpsl_side = 'BUY'
-            else:
-                raise ValueError("Invalid side value. Must be 'BUY' or 'SELL'.")
 
-            tick_size = float(market_data['markets'][symbol]['tickSize'])
+            # Normalize price to tick size
             price = round(price / tick_size) * tick_size
             decimals = abs((decimal.Decimal(market_data['markets'][symbol]['indexPrice']).as_tuple().exponent))
             expiration_epoch_seconds = int((pd.Timestamp.utcnow() + pd.Timedelta(weeks=1)).timestamp())
@@ -503,10 +514,11 @@ class DydxClient:
 
             return order_ids
 
+     
         except Exception as e:
-            self.logger.error(f"An error occurred while placing the market order: {e}")
+            self.logger.error(f"Error placing market order for {symbol}: {e}")
             return None
-        
+
 
 
     def send_tg_msg_when_pos_opened(self, symbol= None):
