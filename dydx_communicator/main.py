@@ -239,7 +239,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
                     
                     if order and isinstance(order, list):
-                        signals.append((symbol, signal[2]), order)
+                        signals.append((symbol, signal[2], order))
 
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
