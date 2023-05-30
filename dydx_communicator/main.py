@@ -195,7 +195,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 atr = atrs[f"{symbol}_{timeframe}"]
                 atr.add_input_value(candle)
                 if not atr:
-                    logger.info(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+                    logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
             last_closed_candle = df.iloc[-1]
         else:
             last_closed_candle = df.iloc[-1]
@@ -244,7 +244,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.warning(f"Invalid signal: {signal[1]}")
                 
             except Exception as e:
-                logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - side: {signal[1]}")
+                logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
 
     return None, None
 
