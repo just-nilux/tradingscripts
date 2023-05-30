@@ -407,7 +407,7 @@ class DydxClient:
         if risk_to_reward_ratio is None:
             risk_to_reward_ratio = self.config['strategies'][0]['risk_to_reward_ratio']
 
-        atr_value = atr * 2
+        atr_value = atr * 10
         
         if side == 'BUY':
             stop_loss = trigger_candle.low - atr_value
