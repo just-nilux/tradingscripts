@@ -190,10 +190,8 @@ class DydxClient:
             A float value of the amount of free collateral in the account.
         """
         try:
-            data = self.client.private.get_account().data
-            free_collateral = float(data['account']['freeCollateral'])
-
-            return free_collateral
+    
+            return float(self.client.private.get_account().data.get('account')['freeCollateral'])
 
         except Exception as e:
             self.logger.error(f"An error occurred while fetching free equity: {e}")
