@@ -200,7 +200,7 @@ class DydxClient:
         
 
 
-    def fetch_all_open_position(self, symbol=None, first_position=False) -> str:
+    def fetch_all_open_position(self, symbol=None) -> str:
         """
         Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
 
@@ -216,18 +216,16 @@ class DydxClient:
             # Fetch positions and orders data
             orders_data = self.client.private.get_orders().data['orders']
 
-            if first_position and not symbol:
-                positions_data = self.client.private.get_positions(status='OPEN').data
+            if symbol:
 
-                # Get the first open position
-                first_position = positions_data['positions'][0]
+                positions_data = next((pos for pos in self.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
 
-                # Build a dictionary of oracle prices, stop limit and take profit prices for the market of the first open position
+                # Build a dictionary of oracle prices, stop limit and take profit prices for the market:
                 market_prices = {
-                    first_position['market']: {
-                        'oracle': self.client.public.get_markets(first_position['market']).data['markets'][first_position['market']]['oraclePrice'],
-                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'STOP_LIMIT'), None),
-                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == first_position['market'] and order['type'] == 'TAKE_PROFIT'), None)
+                    symbol: {
+                        'oracle': self.client.public.get_markets(symbol).data['markets'][symbol]['oraclePrice'],
+                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == symbol and order['type'] == 'STOP_LIMIT'), None),
+                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == symbol and order['type'] == 'TAKE_PROFIT'), None)
                     }
                 }
                 return self.format_positions_data(positions_data, market_prices, first_position = True)
@@ -245,13 +243,13 @@ class DydxClient:
                     for position in positions_data['positions']
                 }
 
-                return self.format_positions_data(positions_data, market_prices, first_position)
+                return self.format_positions_data(positions_data, market_prices)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
 
 
-    def format_positions_data(self, positions_data, market_prices, first_position) -> str:
+    def format_positions_data(self, positions_data, market_prices, first_position = False) -> str:
         """
         Format positions data into a string.
 
