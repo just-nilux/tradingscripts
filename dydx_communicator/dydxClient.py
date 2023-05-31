@@ -2,8 +2,8 @@ import json
 import decimal
 import math
 import pandas as pd
-from datetime import datetime
 
+from datetime import datetime
 from time import time
 from time import sleep
 from dydx3 import Client
@@ -329,6 +329,7 @@ class DydxClient:
                 sleep(0.25)
 
 
+
     def order_size(self, symbol: str, position_size: float) -> Optional[float]:
         """
         Calculate the order size based on the available equity, leverage, and market data.
@@ -342,10 +343,10 @@ class DydxClient:
 
         This function first retrieves the leverage for the specified symbol and calculates the 
         amount of free equity that should be used for the order. It then fetches the current 
-        market data for the symbol, including the oracle price and the minimum order size.
+        market data for the symbol, including the oracle price, the minimum order size, and the step size.
 
         The function then calculates the order size based on the free equity, the leverage, and 
-        the oracle price, ensuring that the order size is a multiple of the minimum order size. 
+        the oracle price, ensuring that the order size is a multiple of the step size. 
         It returns this calculated order size.
         """
         try:
@@ -356,7 +357,7 @@ class DydxClient:
             if not 0 < position_size <= 1:
                 raise ValueError("position_size should be a value between 0 and 1")
 
-            pos_equity = self.fetch_free_equity() * position_size
+            free_equity = self.fetch_free_equity() * position_size
             market_data = self.client.public.get_markets(market=symbol).data['markets'][symbol]
             if market_data is None:
                 raise ValueError(f"Market data not found for symbol: {symbol}")
@@ -369,12 +370,17 @@ class DydxClient:
             if min_order_size <= 0:
                 raise ValueError(f"Invalid minimum order size: {min_order_size}")
 
-            step_size = market_data['stepSize']
-            calculated_order_size = pos_equity / price * leverage
-            calculated_order_size = step_size * math.floor(calculated_order_size / step_size)
+            step_size = float(market_data['stepSize'])
+            if step_size <= 0:
+                raise ValueError(f"Invalid step size: {step_size}")
+
+            # Ensure the order size is divisible by the step size
+            raw_order_size = (free_equity / price) * leverage
+            calculated_order_size = step_size * math.floor(raw_order_size / step_size)
 
             if calculated_order_size < min_order_size:
-                raise ValueError(f"Could not reach minimum order size using leverage: {calculated_order_size}")
+                calculated_order_size = min_order_size
+                self.logger.debug(f"Calculated order size for {symbol} is less than the minimum order size. placing min_order_size")
 
             self.logger.info(f"Calculated order size for {symbol} is {calculated_order_size}")
             return calculated_order_size
@@ -382,6 +388,8 @@ class DydxClient:
         except Exception as e:
             self.logger.error(f"Error calculating order size for {symbol}: {e}")
             return None
+
+
 
 
     def calculate_tp_sl(self, price: float, atr: float, side: str, trigger_candle: pd.Series, tick_size: float, risk_to_reward_ratio=None):
