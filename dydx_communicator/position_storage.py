@@ -1,17 +1,23 @@
-import sqlite3
+from logger_setup import setup_logger
 from sqlite3 import Error
+import sqlite3
+
+
 
 class PositionStorage:
     def __init__(self, db_file):
+        self.logger = setup_logger(__name__)
+
         """ create a database connection to a SQLite database """
         self.conn = None
         try:
             self.conn = sqlite3.connect(db_file)
         except Error as e:
-            print(e)
-            
+            self.logger.error(f"{e}")            
         if self.conn:
             self.create_table()
+
+
 
     def create_table(self):
         """ create a table for the positions """
@@ -24,6 +30,7 @@ class PositionStorage:
                                     ); """)
         except Error as e:
             print(e)
+            self.logger.error(f"{e}")
 
 
     
@@ -36,10 +43,13 @@ class PositionStorage:
             position_data['createdAt'],
             entry_strat
         )
-        cur = self.conn.cursor()
-        cur.execute(sql, position_tuple)
-        self.conn.commit()
-        return cur.lastrowid
+        try:
+            cur = self.conn.cursor()
+            cur.execute(sql, position_tuple)
+            self.conn.commit()
+            return cur.lastrowid
+        except Error as e:
+            self.logger.error(f"{e}")     
 
 
 

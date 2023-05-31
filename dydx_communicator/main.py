@@ -300,12 +300,13 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                     signals = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
 
-                # if signal seng TG msg. for open orders & save info to DB: ( skal stadig laves)
+                # if signal send TG msg. for open orders & save info to DB: ( skal stadig laves)
                 if signals and isinstance(signals, list):
                     for signal in signals:
-                        symbol, entry_strat_type , order = signal
-                        if len(order) == 3: 
-                            msg = client.send_tg_msg_when_pos_opened(symbol=symbol) # skal laves om! en slags for indexering.
+                        symbol, entry_strat_type, order = signal
+                        if len(order) == 3:
+                            msg = client.send_tg_msg_when_pos_opened(symbol=symbol)
+                            logger.error(f'IM RIGHT HERE')
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
                             res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
                             if res:
@@ -340,7 +341,6 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
 
     finally:
         try:
-
             position_storage.close()
         except Exception as e:
             logger.error(f"An error occurred while closing the position storage: {e}")

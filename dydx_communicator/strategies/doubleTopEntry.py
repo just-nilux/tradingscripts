@@ -113,7 +113,7 @@ class DoubleTopDetector:
                 elif self.current_row.high >= self.sell_zone[0]:
                     self.logger.info(f"Price in sell zone: {self.current_row.Index}")
                     self.reset()
-                    return (self.current_row, "SELL", "Double Top Entry")
+                    return (self.current_row, "SELL", "Double_Top_Entry")
 
             else:
 

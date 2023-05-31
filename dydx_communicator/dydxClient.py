@@ -503,7 +503,7 @@ class DydxClient:
 
             # Stop-Loss & Take-Profit order:
             order_ids = list()
-            order_ids.append('ENTRY')
+            order_ids.append(side)
 
             TPSL_ORDER_TYPE = ['TAKE_PROFIT', 'STOP_LIMIT']
             tpsl = self.calculate_tp_sl(price, atr, side, trigger_candle, tick_size)
