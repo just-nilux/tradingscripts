@@ -27,7 +27,7 @@ class PositionStorage:
                                         market text,
                                         createdAt text,
                                         entryStrat text,
-                                        timeframe text,
+                                        timeframe text
                                     ); """)
         except Error as e:
             print(e)

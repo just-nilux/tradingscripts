@@ -96,7 +96,7 @@ class DydxClient:
         current_no_of_historical_trade = len(self.client.private.get_positions(status='Closed').data['positions'])
 
         if current_no_of_historical_trade == self.init_no_of_trades:
-            return
+            return None
         
         elif current_no_of_historical_trade > self.init_no_of_trades:
 
@@ -122,8 +122,9 @@ class DydxClient:
                     #f"Net Funding: {pos['netFunding']}\n"
                 )
                 close_pos_strings.append(msg)
-
-            return "".join(close_pos_strings)
+            res = "".join(close_pos_strings)
+            print(res)
+            return res
 
         
 
