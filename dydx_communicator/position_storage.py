@@ -19,32 +19,26 @@ class PositionStorage:
             cur = self.conn.cursor()
             cur.execute(""" CREATE TABLE IF NOT EXISTS positions (
                                         market text,
-                                        status text,
-                                        side text,
-                                        size text,
-                                        maxSize text,
-                                        entryPrice text,
-                                        exitPrice text,
-                                        unrealizedPnl text,
-                                        realizedPnl text,
                                         createdAt text,
-                                        closedAt text,
-                                        sumOpen text,
-                                        sumClose text,
-                                        netFunding text,
                                         entryStrat text
                                     ); """)
         except Error as e:
             print(e)
 
 
-
-    def insert_position(self, position):
+    
+    def insert_position(self, position_data, entry_strat):
         """ insert a new position into the positions table """
-        sql = ''' INSERT INTO positions(market,status,side,size,maxSize,entryPrice,exitPrice,unrealizedPnl,realizedPnl,createdAt,closedAt,sumOpen,sumClose,netFunding)
-                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+        sql = ''' INSERT INTO positions(market, createdAt, entryStrat)
+                  VALUES(?,?,?) '''
+        position_tuple = (
+            position_data['market'],
+            position_data['createdAt'],
+            entry_strat
+        )
         cur = self.conn.cursor()
-        cur.execute(sql, position)
+        cur.execute(sql, position_tuple)
+        self.conn.commit()
         return cur.lastrowid
 
 
