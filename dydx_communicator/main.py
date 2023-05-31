@@ -234,7 +234,7 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
                     size = float(client.order_size(symbol, client.config['position_size']))
 
-                    logger.debug(f"Placing {signal[1]} order for {symbol} with size {size}")     
+                    logger.info(f"\033[92mPlacing {signal[1]} order for {symbol} with size {size}\033[0m") 
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
                     
                     signals.append((symbol, timeframe, signal[2], order))
