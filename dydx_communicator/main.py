@@ -309,7 +309,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
                             res = [pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol]
                             if res:
-                                position_storage.insert_position(res , entry_strat_type)
+                                position_storage.insert_position(res[0] , entry_strat_type)
                         else:
                             # if not both SL / TP orders have been set, close position:
                             client.cancel_order_by_symbol(symbol)
