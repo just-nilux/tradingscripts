@@ -257,7 +257,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
 
 
 
-def execute_main(client, json_file_path, liq_levels, position_storage):
+def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdict(list), position_storage: PositionStorage):
 
     try:
         detectors, atrs = initialize_detectors(client)
@@ -269,69 +269,80 @@ def execute_main(client, json_file_path, liq_levels, position_storage):
         first_iteration = True
 
         while True:
-            # Get the current time
-            current_time = datetime.datetime.now()
+            try:
+                # Get the current time
+                current_time = datetime.datetime.now()
 
-            # Calculate the remaining seconds until the next minute
-            remaining_seconds = 60 - current_time.second
+                # Calculate the remaining seconds until the next minute
+                remaining_seconds = 60 - current_time.second
 
-            # Sleep for the remaining seconds
-            time.sleep(remaining_seconds)
+                # Sleep for the remaining seconds
+                time.sleep(remaining_seconds)
 
-            res = process_json_file(json_file_path)
+                res = process_json_file(json_file_path)
 
-            # update active symbols & update entryStrat obj:
-            if res is not None:
-                liq_levels = res
-                symbols_modified = update_config_with_symbols(liq_levels, client)
-                if symbols_modified:
-                    detectors, atrs = initialize_detectors(client, detectors, atrs)
-
-
-            # create unique sets of all symbols and timeframes & fetch df for each:
-            all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
-            all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-            all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
+                # update active symbols & update entryStrat obj:
+                if res is not None:
+                    liq_levels = res
+                    symbols_modified = update_config_with_symbols(liq_levels, client)
+                    if symbols_modified:
+                        detectors, atrs = initialize_detectors(client, detectors, atrs)
 
 
-            # execute strategy
-            for (symbol, timeframe), df in all_symbol_df.items():
-                signals = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+                # create unique sets of all symbols and timeframes & fetch df for each:
+                all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
+                all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
+                all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
 
 
-            # if signal seng TG msg. for open orders & save info to DB: ( skal stadig laves)
-            if signals and isinstance(signals, list):
-                for signal in signals:
-                    symbol, entry_strat_type , order = signal
-                    if len(order) == 3: 
-                        msg = client.send_tg_msg_when_pos_opened(symbol=symbol) # skal laves om! en slags for indexering.
-                        send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
-                        position_storage.insert_position(client.client.private.get_positions(symbol=symbol, status='Open').data['positions'][0], entry_strat_type)
-                    else:
-                        # if not both SL / TP orders have been set, close position:
-                        client.cancel_order_by_symbol(symbol)
+                # execute strategy
+                for (symbol, timeframe), df in all_symbol_df.items():
+                    signals = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
 
 
-            check_liquidation_zone(liq_levels, client)
-            
-            # Cancels all orders for trading pairs which don't have an open position:
-            client.purge_no_pos_orders()
+                # if signal seng TG msg. for open orders & save info to DB: ( skal stadig laves)
+                if signals and isinstance(signals, list):
+                    for signal in signals:
+                        symbol, entry_strat_type , order = signal
+                        if len(order) == 3: 
+                            msg = client.send_tg_msg_when_pos_opened(symbol=symbol) # skal laves om! en slags for indexering.
+                            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                            position_storage.insert_position(client.client.private.get_positions(symbol=symbol, status='Open').data['positions'][0], entry_strat_type)
+                        else:
+                            # if not both SL / TP orders have been set, close position:
+                            client.cancel_order_by_symbol(symbol)
 
-            msg = client.send_tg_msg_when_trade_closed()
-            if msg:
-                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+
+                check_liquidation_zone(liq_levels, client)
+                
+                # Cancels all orders for trading pairs which don't have an open position:
+                client.purge_no_pos_orders()
+
+                msg = client.send_tg_msg_when_trade_closed()
+                if msg:
+                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
-            first_iteration = False
+                first_iteration = False
 
-            # Sleep for some time before executing the strategies again (e.g., 60 seconds)
-            logger.debug("Sleeping untill next minute")
+                # Sleep for some time before executing the strategies again (e.g., 60 seconds)
+                logger.debug("Sleeping untill next minute")
 
-            # Sleep for 1 second to ensure it runs at the beginning of the minute
-            time.sleep(1)
+                # Sleep for 1 second to ensure it runs at the beginning of the minute
+                time.sleep(1)
+
+
+            except Exception as e:
+                logger.error(f"An error occurred in the main execution loop: {e}")
+                logger.exception(e)
 
     finally:
-        position_storage.close()
+        try:
+
+            position_storage.close()
+        except Exception as e:
+            logger.error(f"An error occurred while closing the position storage: {e}")
+            logger.exception(e)
 
 
 def main():
