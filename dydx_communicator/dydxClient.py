@@ -373,10 +373,16 @@ class DydxClient:
             step_size = float(market_data['stepSize'])
             if step_size <= 0:
                 raise ValueError(f"Invalid step size: {step_size}")
-
+            
             # Ensure the order size is divisible by the step size
             raw_order_size = (free_equity / price) * leverage
             calculated_order_size = step_size * math.floor(raw_order_size / step_size)
+
+            # Determine the number of decimal places based on the step size
+            decimal_places = int(math.ceil(-math.log10(step_size)))
+
+            # Round the calculated order size to the appropriate number of decimal places
+            calculated_order_size = round(calculated_order_size, decimal_places)
 
             if calculated_order_size < min_order_size:
                 calculated_order_size = min_order_size
