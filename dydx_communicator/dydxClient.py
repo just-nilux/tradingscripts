@@ -10,6 +10,8 @@ from dydx3 import Client
 from typing import Tuple, List, Optional
 from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
+from datetime import datetime, timezone
+
 
 
 
@@ -39,8 +41,9 @@ class DydxClient:
             self.stark_private_key,
             self.default_ethereum_address
         )
-
-        self.init_no_of_trades = len(self.client.private.get_positions(status='Closed').data['positions'])
+        
+        self.last_closed_trade = datetime.now(timezone.utc)
+        
 
     
     def initialize_dydx_client(self, api_key: str, secret_key: str, passphrase: str, stark_priv_key:str, eth_address: str) -> Tuple[Client, str]:
@@ -81,57 +84,58 @@ class DydxClient:
             return None
 
 
+
+
     def send_tg_msg_when_trade_closed(self):
         """
-        Checks if a trade has been closed since the last check. If a trade has been closed, 
-        it formats the relevant information about the trade into a message and returns it.
-        The message can then be sent to Telegram or used for other purposes.
-    
+        Checks if any trades have been closed since the last check. If any trades have been closed, 
+        it formats the relevant information about each trade into a message and returns them.
+        The messages can then be sent to Telegram or used for other purposes.
+
         Returns:
-            str: A formatted message containing information about the closed trade, 
+            List[str]: A list of formatted messages containing information about the closed trades, 
             or None if no trade has been closed since the last check.
         """
+        # Get the most recent closed trades and sort them by 'closedAt' in reverse order (most recent first)
+        positions = sorted(self.client.private.get_positions(status='CLOSED', limit=100).data['positions'], key=lambda position: position['closedAt'], reverse=True)
 
+        close_pos_strings = []
+        for pos in positions:
+            # Convert the 'closedAt' timestamp to a datetime object
+            closed_at = datetime.fromisoformat(pos['closedAt'].replace('Z', '+00:00'))
 
-        current_no_of_historical_trade = len(self.client.private.get_positions(status='Closed').data['positions'])
-
-        if current_no_of_historical_trade == self.init_no_of_trades:
-            return None
-        
-        elif current_no_of_historical_trade > self.init_no_of_trades:
-
-            diff = int(current_no_of_historical_trade - self.init_no_of_trades)
-
-            self.init_no_of_trades +=diff
-            position = self.client.private.get_positions(status='Closed').data['positions'][:diff]
-
-            close_pos_strings = []
-            for pos in position:
+            # If this trade was closed after the most recent one we've seen, it's a new one
+            if closed_at > self.last_closed_trade:
                 msg = (
                     f"*** TRADE CLOSED ***\n"
                     f"Opened: {datetime.fromisoformat(pos['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                    f"Closed: {datetime.fromisoformat(pos['closedAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"Closed: {closed_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
                     f"Market: {pos['market']}\n"
                     f"Status: {pos['status']}\n"
                     f"Side: {pos['side']}\n"
                     f"Size: {pos['maxSize']}\n"
                     f"Entry Price: {pos['entryPrice']}\n"
                     f"Exit Price: {pos['exitPrice']}\n"
-                    #f"Unrealized PnL: {pos['unrealizedPnl']}\n"
                     f"Realized PnL: {pos['realizedPnl']}\n"
-                    #f"Net Funding: {pos['netFunding']}\n"
                 )
                 close_pos_strings.append(msg)
-            res = "".join(close_pos_strings)
-            print(res)
-            return res
+            else:
+                # Once we reach a trade that was closed before the most recent one we've seen,
+                # we know we've processed all the new ones and can break the loop
+                break
+
+        # Update the timestamp of the most recent trade we've seen, if we've seen any new ones
+        if close_pos_strings:
+            self.last_closed_trade = datetime.fromisoformat(positions[0]['closedAt'].replace('Z', '+00:00'))
+
+        return close_pos_strings
+
 
         
 
     def cancel_order_by_symbol(self, symbol):
         self.logger.info(f'remaining open orders for {symbol} have been cancelled')
         return self.client.private.cancel_all_orders(symbol).data
-
 
 
 
