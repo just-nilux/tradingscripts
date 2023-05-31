@@ -93,9 +93,6 @@ def process_response(update: Update, context: CallbackContext):
 
     elif response == 'Open Positions':
         positions = client.fetch_all_open_position()
-
-
-        
         update.message.reply_text(text=positions)
 
 
@@ -130,13 +127,6 @@ def process_response(update: Update, context: CallbackContext):
     elif response == "Algo Stats":
             update.message.reply_text(text="Comming soon......")
 
-
-
-
-
-
-
-        
 
 
 

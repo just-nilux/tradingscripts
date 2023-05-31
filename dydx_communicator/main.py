@@ -181,7 +181,7 @@ def fetch_support_resistance(symbol, liq_levels):
 
 
 
-def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df):
+def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_levels: defaultdict(list), first_iteration: bool, symbol: str, timeframe: str, df: pd.DataFrame, signals: list):
 
     current_time = datetime.datetime.now()
     minutes = current_time.minute
@@ -206,7 +206,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
 
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
-        
+        orders = list()
         for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
             strategy_function = globals()[strategy_function_name]
             detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
@@ -228,16 +228,16 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
            
             try:
-                
+
                 if signal[1] in ('SELL', 'BUY'):
                     logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
 
                     size = float(client.order_size(symbol, client.config['position_size']))
 
-                    logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")     
+                    logger.debug(f"Placing {signal[1]} order for {symbol} with size {size}")     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
                     
-                    return (symbol, signal[2], order)
+                    signals.append((symbol, timeframe, signal[2], order))
 
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
@@ -246,11 +246,6 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
-                return (symbol, signal[2], order)
-        
-        return (symbol, signal[2], order)
-
-    return None
 
 
 
@@ -292,39 +287,46 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                 all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
                 all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
 
-
+                
                 # execute strategy
                 signals = list()
-
                 for (symbol, timeframe), df in all_symbol_df.items():
-                    res = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
-                    signals.append(res)
+                    execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df, signals)
+                    #signals.append(res)
+                logger.debug(f"All orders in each iteration is stored in signals: {signals}")
 
 
-                # if signal send TG msg. for open orders & save info to DB: ( skal stadig laves)
+                # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
                 if signals:
+                    #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
+                    msg = client.fetch_all_open_position(open_pos=len(signals))
+                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+
                     for signal in signals:
-                        symbol, entry_strat_type, order = signal
+                        symbol, tf, entry_strat_type, order = signal
                         if len(order) == 3:
-                            msg = client.send_tg_msg_when_pos_opened(symbol=symbol)
-                            logger.error(f'IM RIGHT HERE')
-                            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
                             res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
                             if res:
-                                position_storage.insert_position(res, entry_strat_type)
-                        else:
-                            # if not both SL / TP orders have been set, close position:
-                            client.cancel_order_by_symbol(symbol)
+                                position_storage.insert_position(res, entry_strat_type, tf)
 
+
+                    #for sym_tf in signals:
+                    #    for signal in sym_tf:
+                    #        symbol, entry_strat_type, order = signal
+                    #        if len(order) == 3:
+                    #            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
+                    #            if res:
+                    #                position_storage.insert_position(res, entry_strat_type)
 
                 check_liquidation_zone(liq_levels, client)
                 
                 # Cancels all orders for trading pairs which don't have an open position:
                 client.purge_no_pos_orders()
 
-                msg = client.send_tg_msg_when_trade_closed()
-                if msg:
-                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+
+                # Send msg in TG when orders are closed:
+                close_msg = client.send_tg_msg_when_trade_closed()
+                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], close_msg, pass_time_limit=True)
 
 
                 first_iteration = False

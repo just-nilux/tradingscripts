@@ -99,25 +99,32 @@ class DydxClient:
             return
         
         elif current_no_of_historical_trade > self.init_no_of_trades:
-            self.init_no_of_trades +=1
-            position = self.client.private.get_positions(status='Closed').data['positions'][0]
 
-            msg = (
-                f"*** TRADE CLOSED ***\n"
-                f"Opened: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"Closed: {datetime.fromisoformat(position['closedAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"Market: {position['market']}\n"
-                f"Status: {position['status']}\n"
-                f"Side: {position['side']}\n"
-                f"Size: {position['maxSize']}\n"
-                f"Entry Price: {position['entryPrice']}\n"
-                f"Exit Price: {position['exitPrice']}\n"
-                #f"Unrealized PnL: {position['unrealizedPnl']}\n"
-                f"Realized PnL: {position['realizedPnl']}\n"
-                #f"Net Funding: {position['netFunding']}\n"
-            )
+            diff = int(current_no_of_historical_trade - self.init_no_of_trades)
 
-            return msg
+            self.init_no_of_trades +=diff
+            position = self.client.private.get_positions(status='Closed').data['positions'][:diff]
+
+            close_pos_strings = []
+            for pos in position:
+                msg = (
+                    f"*** TRADE CLOSED ***\n"
+                    f"Opened: {datetime.fromisoformat(pos['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"Closed: {datetime.fromisoformat(pos['closedAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"Market: {pos['market']}\n"
+                    f"Status: {pos['status']}\n"
+                    f"Side: {pos['side']}\n"
+                    f"Size: {pos['maxSize']}\n"
+                    f"Entry Price: {pos['entryPrice']}\n"
+                    f"Exit Price: {pos['exitPrice']}\n"
+                    #f"Unrealized PnL: {pos['unrealizedPnl']}\n"
+                    f"Realized PnL: {pos['realizedPnl']}\n"
+                    #f"Net Funding: {pos['netFunding']}\n"
+                )
+                close_pos_strings.append(msg)
+
+            return "".join(close_pos_strings)
+
         
 
     def cancel_order_by_symbol(self, symbol):
@@ -200,7 +207,7 @@ class DydxClient:
         
 
 
-    def fetch_all_open_position(self, symbol=None) -> str:
+    def fetch_all_open_position(self, symbol=None, open_pos=0) -> str:
         """
         Fetch all open positions for the authenticated user, filtered by a specific symbol if provided.
 
@@ -216,40 +223,26 @@ class DydxClient:
             # Fetch positions and orders data
             orders_data = self.client.private.get_orders().data['orders']
 
-            if symbol:
-
-                positions_data = next((pos for pos in self.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
-
-                # Build a dictionary of oracle prices, stop limit and take profit prices for the market:
-                market_prices = {
-                    symbol: {
-                        'oracle': self.client.public.get_markets(symbol).data['markets'][symbol]['oraclePrice'],
-                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == symbol and order['type'] == 'STOP_LIMIT'), None),
-                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == symbol and order['type'] == 'TAKE_PROFIT'), None)
-                    }
+            positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
+        
+            # Build a dictionary of oracle prices, stop limit and take profit prices for each market
+            market_prices = {
+                position['market']: {
+                    'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
+                    'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
+                    'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
                 }
-                return self.format_positions_data(positions_data, market_prices, first_position = True)
-            
-            else:
-                positions_data = self.client.private.get_positions(market=symbol, status='OPEN').data if symbol else self.client.private.get_positions(status='OPEN').data
-            
-                # Build a dictionary of oracle prices, stop limit and take profit prices for each market
-                market_prices = {
-                    position['market']: {
-                        'oracle': self.client.public.get_markets(position['market']).data['markets'][position['market']]['oraclePrice'],
-                        'STOP_LIMIT': next((order['triggerPrice'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'STOP_LIMIT'), None),
-                        'TAKE_PROFIT': next((order['price'] for order in orders_data if order['market'] == position['market'] and order['type'] == 'TAKE_PROFIT'), None)
-                    }
-                    for position in positions_data['positions']
-                }
+                for position in positions_data['positions']
+            }
 
-                return self.format_positions_data(positions_data, market_prices)
+            return self.format_positions_data(positions_data, market_prices, open_pos=open_pos)
 
         except Exception as e:
             return "An error occurred while fetching open positions"
 
 
-    def format_positions_data(self, positions_data, market_prices, first_position = False) -> str:
+
+    def format_positions_data(self, positions_data: dict, market_prices: dict, open_pos = 0) -> str:
         """
         Format positions data into a string.
 
@@ -274,7 +267,7 @@ class DydxClient:
             sl_percent_change = ((sl_price - entry_price) / entry_price) * 100 if entry_price else None
 
             # Set the optional string based on the 'first_position' flag
-            first_position_string = "\n*** OPENED POSITION ***\n" if first_position else ""
+            first_position_string = "\n*** OPENED POSITION ***\n" if open_pos != 0 else ""
 
             results.append(
                 f"{first_position_string}"
@@ -288,6 +281,8 @@ class DydxClient:
                 f"Current Price: {current_prices.get('oracle')}\n"
                 f"Unrealized PnL: {position['unrealizedPnl']}\n"
             )
+        if open_pos !=0:
+            return "".join(results[:open_pos])
         return "".join(results)
 
 
@@ -498,7 +493,7 @@ class DydxClient:
             order_id = order_response.data['order']['id']
 
             if not order_id:
-                self.logger.error(f'Order for {symbol} did not go through')
+                self.logger.error(f'place {side} market order for {symbol} did not go through')
                 return
 
             # Stop-Loss & Take-Profit order:

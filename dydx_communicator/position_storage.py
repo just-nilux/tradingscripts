@@ -26,7 +26,8 @@ class PositionStorage:
             cur.execute(""" CREATE TABLE IF NOT EXISTS positions (
                                         market text,
                                         createdAt text,
-                                        entryStrat text
+                                        entryStrat text,
+                                        timeframe text,
                                     ); """)
         except Error as e:
             print(e)
@@ -34,14 +35,15 @@ class PositionStorage:
 
 
     
-    def insert_position(self, position_data, entry_strat):
+    def insert_position(self, position_data, entry_strat, timeframe):
         """ insert a new position into the positions table """
         sql = ''' INSERT INTO positions(market, createdAt, entryStrat)
-                  VALUES(?,?,?) '''
+                  VALUES(?,?,?,?) '''
         position_tuple = (
             position_data['market'],
             position_data['createdAt'],
-            entry_strat
+            entry_strat,
+            timeframe
         )
         try:
             cur = self.conn.cursor()

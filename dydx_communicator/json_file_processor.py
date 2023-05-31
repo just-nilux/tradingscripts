@@ -44,8 +44,8 @@ def process_json_file(file_path):
             results[symbol].append(price)
 
     # Print the results
-    for symbol, prices in results.items():
-        rounded_prices = [round(price, 2) for price in prices]  # Round the prices
-        print(f"Symbol: {symbol}, Prices: {rounded_prices}")
+    #for symbol, prices in results.items():
+    #    rounded_prices = [round(price, 2) for price in prices]  # Round the prices
+    #    print(f"Symbol: {symbol}, Prices: {rounded_prices}")
     
     return results
