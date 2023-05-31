@@ -1,5 +1,19 @@
+from colorama import Fore, Style
 import logging
 import os
+
+
+
+class CustomFormatter(logging.Formatter):
+    """Logging Formatter to add colors"""
+
+    def format(self, record):
+        if record.levelno == logging.ERROR:
+            return f"{Fore.RED}{super().format(record)}{Style.RESET_ALL}"
+        else:
+            return super().format(record)
+
+
 
 def setup_logger(name):
     logger = logging.getLogger(name)
