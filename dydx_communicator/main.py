@@ -310,14 +310,6 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                                 position_storage.insert_position(res, entry_strat_type, tf)
 
 
-                    #for sym_tf in signals:
-                    #    for signal in sym_tf:
-                    #        symbol, entry_strat_type, order = signal
-                    #        if len(order) == 3:
-                    #            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
-                    #            if res:
-                    #                position_storage.insert_position(res, entry_strat_type)
-
                 check_liquidation_zone(liq_levels, client)
                 
                 # Cancels all orders for trading pairs which don't have an open position:
