@@ -207,7 +207,6 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
         
-        signals = list()
         for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
             strategy_function = globals()[strategy_function_name]
             detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
@@ -238,8 +237,7 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                     logger.debug(f"Placing {signal[1].lower()} order for {symbol} with size {size}")     
                     order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
                     
-                    if order and isinstance(order, list):
-                        signals.append((symbol, signal[2], order))
+                    return (symbol, signal[2], order)
 
                 elif signal[1] is None:
                     logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
@@ -248,9 +246,9 @@ def execute_strategies(client, detectors, atrs, liq_levels, first_iteration, sym
                 
             except Exception as e:
                 logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
-                return signals
+                return (symbol, signal[2], order)
         
-        return signals
+        return (symbol, signal[2], order)
 
     return None
 
@@ -296,12 +294,15 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
 
 
                 # execute strategy
+                signals = list()
+
                 for (symbol, timeframe), df in all_symbol_df.items():
-                    signals = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+                    res = execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df)
+                    signals.append(res)
 
 
                 # if signal send TG msg. for open orders & save info to DB: ( skal stadig laves)
-                if signals and isinstance(signals, list):
+                if signals:
                     for signal in signals:
                         symbol, entry_strat_type, order = signal
                         if len(order) == 3:
