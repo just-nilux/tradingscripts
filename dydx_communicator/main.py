@@ -53,36 +53,38 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
 
 
 
-def update_config_with_symbols(data: defaultdict, client):
+def update_config_with_symbols(data: defaultdict, client: DydxClient):
     """
-    Update the 'symbols' list in each strategy in the client's config with symbols from the provided defaultdict.                                                                            
-    Symbols are selected from the defaultdict if their corresponding list has exactly 3 elements.                                                                                            
-    The updated config is then written back to the client's config.json file.
+    Update the 'symbols' list in each strategy in the client's config with unique symbols from the data dictionary. 
+    Symbols are selected if their corresponding list in the data has exactly 4 elements. 
+    The updated config is written back to the client's config.json file.
 
     Parameters:
-    data (defaultdict): The defaultdict containing symbol data. Keys are symbols, values are lists.                                                                                          
-    client (object): The client object, expected to have 'config.json'.                                                                                              
+    data (defaultdict): A dictionary with symbols as keys and lists as values.
+    client (DydxClient): A client object with a 'config.json'.
 
-    Returns: True if some symbols have been added, False otherwise
+    Returns:
+    added_symbols (list): A list of new symbols that have been added to the strategies.
     """
     
-    symbols_added = False
-    new_symbols = []
+    added_symbols = []
 
-    # Update the symbols in strategies for symbols with length == 4 in defaultdict
+    # Find symbols with length == 4 in defaultdict
+    new_symbols = [k for k, v in data.items() if len(v) == 4]
+
+    # Update the symbols in strategies 
     for strategy in client.config['strategies']:
-        new_symbols = [k for k, v in data.items() if len(v) == 4]
         if set(new_symbols) != set(strategy['symbols']):
-            strategy['symbols'] = new_symbols
-            symbols_added = True
-            new_symbols.extend(new_symbols)
+            added_symbols += list(set(new_symbols).difference(strategy['symbols']))  # Compute and store the difference
+            strategy['symbols'] = list(set(new_symbols))  # Convert to set and back to list to remove duplicates
 
     # Write back the updated json to file
-    if symbols_added:
+    if added_symbols:
         with open("config.json", 'w') as json_file:
             json.dump(client.config, json_file, indent=2)
 
-    return new_symbols
+    return added_symbols
+
 
 
 
