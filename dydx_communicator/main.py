@@ -61,20 +61,22 @@ def update_config_with_symbols(data: defaultdict, client):
     """
     
     symbols_added = False
-
+    new_symbols = []
+    
     # Update the symbols in strategies for symbols with length == 4 in defaultdict
     for strategy in client.config['strategies']:
         new_symbols = [k for k, v in data.items() if len(v) == 4]
         if set(new_symbols) != set(strategy['symbols']):
             strategy['symbols'] = new_symbols
             symbols_added = True
+            new_symbols.extend(new_symbols)
 
     # Write back the updated json to file
     if symbols_added:
         with open("config.json", 'w') as json_file:
             json.dump(client.config, json_file, indent=2)
 
-    return symbols_added
+    return new_symbols
 
 
 
