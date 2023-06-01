@@ -46,7 +46,7 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
                 liq_zones_to_be_updated.remove(symbol)
 
             elif not min_price < current_price < max_price:
-                liq_zones_to_be_updated.extend(symbol)
+                liq_zones_to_be_updated.append(symbol)
                 msg = f'Update Liquidity Zones: {symbol}'
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
                 logger.debug(msg)
