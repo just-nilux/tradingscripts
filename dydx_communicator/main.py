@@ -289,7 +289,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                 # update active symbols & update entryStrat obj:
                 if res is not None:
                     liq_levels = res
-                    symbols_added = update_config_with_symbols(liq_levels, client, liq_zones_to_be_updated)
+                    symbols_added = update_config_with_symbols(liq_levels, client)
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
@@ -325,7 +325,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                                 position_storage.insert_position(res, entry_strat_type, tf)
 
 
-                check_liquidation_zone(liq_levels, client)
+                check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated)
                 
                 # Cancels all orders for trading pairs which don't have an open position:
                 client.purge_no_pos_orders()
