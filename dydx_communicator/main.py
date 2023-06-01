@@ -23,7 +23,7 @@ import time
 logger = setup_logger(__name__)
 
 
-def check_liquidation_zone(data, client):
+def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updated: list):
     """
     Check the liquidation zone for each symbol in the data and send a 
     Telegram message if the current price is outside the provided zone.
@@ -40,7 +40,13 @@ def check_liquidation_zone(data, client):
             min_price = min(prices)
             max_price = max(prices)
 
-            if not min_price < current_price < max_price:
+            if min_price < current_price < max_price and symbol in liq_zones_to_be_updated:
+                msg = f"\033[92m{chr(0x2713)}\033[0m Liquidity Zones have been updated for {symbol}"
+                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+                liq_zones_to_be_updated.remove(symbol)
+
+            elif not min_price < current_price < max_price:
+                liq_zones_to_be_updated.extend(symbol)
                 msg = f'Update Liquidity Zones: {symbol}'
                 send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
                 logger.debug(msg)
@@ -263,6 +269,10 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
         # Initialize first_iteration as True
         first_iteration = True
 
+        # tmp list for Liq. zones that needs to be updated:
+        liq_zones_to_be_updated = list()
+        
+
         while True:
             try:
                 # Get the current time
@@ -279,7 +289,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                 # update active symbols & update entryStrat obj:
                 if res is not None:
                     liq_levels = res
-                    symbols_added = update_config_with_symbols(liq_levels, client)
+                    symbols_added = update_config_with_symbols(liq_levels, client, liq_zones_to_be_updated)
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
