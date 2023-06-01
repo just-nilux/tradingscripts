@@ -62,7 +62,7 @@ def update_config_with_symbols(data: defaultdict, client):
     
     symbols_added = False
     new_symbols = []
-    
+
     # Update the symbols in strategies for symbols with length == 4 in defaultdict
     for strategy in client.config['strategies']:
         new_symbols = [k for k, v in data.items() if len(v) == 4]
@@ -283,7 +283,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
-                            msg = f"\033[92m{chr(0x2713)}\033[0m Liquidity Zones have been updated for {sym}"
+                            msg = f"\033[92m{chr(0x2713)}\033[0m {sym} Active For Trading"
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
