@@ -2,11 +2,14 @@ import json
 import hashlib
 import os
 from collections import defaultdict
+from logger_setup import setup_logger
+
+logger = setup_logger(__name__)
 
 def calculate_file_hash(file_path):
     # Check if the file exists
     if not os.path.exists(file_path):
-        print(f"File {file_path} not found.")
+        logger.error(f"File {file_path} not found.")
         return None
 
     # Read the file content and calculate the hash
@@ -23,9 +26,10 @@ def process_json_file(file_path):
 
     # Check if the file has been updated since the last execution
     if current_hash == process_json_file.last_hash:
-        print("File has not been updated since the last execution.")
+        logger.info("File has not been updated since the last execution.")
         return
 
+    logger.info("File was updated since last execation")
     # Update the last hash with the current hash
     process_json_file.last_hash = current_hash
 

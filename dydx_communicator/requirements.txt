@@ -1,3 +1,4 @@
+psutil
 connectors
 dydx_v3_python
 pandas

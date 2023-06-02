@@ -23,7 +23,23 @@ import time
 logger = setup_logger(__name__)
 
 
-def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updated: list):
+
+def send_update(client, symbol, updated):
+    """
+    Sends a telegram message about the update status of liquidity zones.
+
+    Args:
+    client (obj): Client object to connect with the server and get market data.
+    symbol (str): The symbol for which the liquidity zones are being updated.
+    updated (bool): Whether the liquidity zones have been updated.
+    """
+    msg = f"\033[92m{chr(0x2713)}\033[0m Liquidity Zones have been updated for {symbol}" if updated else f'Update Liquidity Zones: {symbol}'
+    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
+    if not updated:
+        logger.debug(msg)
+
+
+def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updated: set):
     """
     Check the liquidation zone for each symbol in the data and send a 
     Telegram message if the current price is outside the provided zone.
@@ -31,25 +47,22 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
     Args:
     data (dict): A dictionary with symbols as keys and list of prices as values.
     client (obj): Client object to connect with the server and get market data.
+    liq_zones_to_be_updated (set): Set of symbols whose liquidity zones need to be updated.
     """
-
     for symbol, prices in data.items():
-        if len(prices) == 4:
-            market = client.client.public.get_markets(market=symbol).data['markets'][symbol]
-            current_price = float(market['oraclePrice'])
-            min_price = min(prices)
-            max_price = max(prices)
+        if len(prices) != 4:
+            continue
 
-            if min_price < current_price < max_price and symbol in liq_zones_to_be_updated:
-                msg = f"\033[92m{chr(0x2713)}\033[0m Liquidity Zones have been updated for {symbol}"
-                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
-                liq_zones_to_be_updated.remove(symbol)
+        min_price, max_price = min(prices), max(prices)
 
-            elif not min_price < current_price < max_price:
-                liq_zones_to_be_updated.append(symbol)
-                msg = f'Update Liquidity Zones: {symbol}'
-                send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg)
-                logger.debug(msg)
+        if symbol in liq_zones_to_be_updated and min_price < client.client.public.get_markets(market=symbol).data['markets'][symbol] < max_price:
+            send_update(client, symbol, True)
+            liq_zones_to_be_updated.remove(symbol)
+
+        elif not min_price < client.client.public.get_markets(market=symbol).data['markets'][symbol] < max_price:
+            liq_zones_to_be_updated.add(symbol)
+            send_update(client, symbol, False)
+
 
 
 
@@ -66,7 +79,7 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
     Returns:
     added_symbols (list): A list of new symbols that have been added to the strategies.
     """
-    
+
     added_symbols = []
 
     # Find symbols with length == 4 in defaultdict
@@ -84,9 +97,6 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
             json.dump(client.config, json_file, indent=2)
 
     return added_symbols
-
-
-
 
 
 
@@ -271,8 +281,8 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
         # Initialize first_iteration as True
         first_iteration = True
 
-        # tmp list for Liq. zones that needs to be updated:
-        liq_zones_to_be_updated = list()
+        #list for Liq. zones that needs to be updated:
+        liq_zones_to_be_updated = set()
         
 
         while True:
