@@ -53,13 +53,15 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
         if len(prices) != 4:
             continue
 
+        current_price = float(client.client.public.get_markets(market=symbol).data['markets'][symbol]['orclePrice'])
+
         min_price, max_price = min(prices), max(prices)
 
-        if symbol in liq_zones_to_be_updated and min_price < float(client.client.public.get_markets(market=symbol).data['markets'][symbol]) < max_price:
+        if symbol in liq_zones_to_be_updated and min_price < current_price < max_price:
             send_update(client, symbol, True)
             liq_zones_to_be_updated.remove(symbol)
 
-        elif not min_price < float(client.client.public.get_markets(market=symbol).data['markets'][symbol]) < max_price:
+        elif not min_price < current_price < max_price:
             liq_zones_to_be_updated.add(symbol)
             send_update(client, symbol, False)
 
