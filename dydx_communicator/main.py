@@ -33,7 +33,7 @@ def send_update(client, symbol, updated):
     symbol (str): The symbol for which the liquidity zones are being updated.
     updated (bool): Whether the liquidity zones have been updated.
     """
-    msg = f"\033[92m{chr(0x2713)}\033[0m Liquidity Zones have been updated for {symbol}" if updated else f'Update Liquidity Zones: {symbol}'
+    msg = f"Liquidity Zones have been updated for {symbol}" if updated else f'Update Liquidity Zones: {symbol}'
     send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=updated)
     if not updated:
         logger.debug(msg)
