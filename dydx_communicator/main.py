@@ -306,7 +306,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
-                            msg = f"{sym} Active For Trading"
+                            msg = f"{sym} Activated For Trading"
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 

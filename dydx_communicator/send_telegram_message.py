@@ -67,7 +67,7 @@ def process_response(update: Update, context: CallbackContext):
             if 'symbols' in strategy and 'timeframes' in strategy:
                 active_symbols = strategy['symbols']
                 if not active_symbols:
-                    update.message.reply_text(text=f"No active symbols or timeframes found.")
+                    update.message.reply_text(text=f"No Active Symbols ATM.")
                     return
                 timeframes = strategy['timeframes']
                 messages = []
