@@ -66,6 +66,9 @@ def process_response(update: Update, context: CallbackContext):
             strategy = client.config['strategies'][0]
             if 'symbols' in strategy and 'timeframes' in strategy:
                 active_symbols = strategy['symbols']
+                if not active_symbols:
+                    update.message.reply_text(text=f"No active symbols or timeframes found.")
+                    return
                 timeframes = strategy['timeframes']
                 messages = []
                 for symbol in active_symbols:
@@ -73,8 +76,7 @@ def process_response(update: Update, context: CallbackContext):
                     messages.append(message)
                 text = "\n".join(messages)
                 update.message.reply_text(text=f"*** Active Symbols: ***\n{text}")
-            else:
-                update.message.reply_text(text=f"No active symbols or timeframes found.")
+
                 
     elif response == 'Active Strategies':
         if client.config.get('strategies'):

@@ -128,7 +128,7 @@ def initialize_detectors(client, detectors=None, atrs=None):
 
     for strategy in client.config['strategies']:
         symbols = set(strategy['symbols'])
-        timeframes = set(strategy['timeframes']))
+        timeframes = set(strategy['timeframes'])
         strategy_functions = strategy['strategy_functions']
 
         for symbol in symbols:
@@ -306,7 +306,7 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
-                            msg = f"\033[92m{chr(0x2713)}\033[0m {sym} Active For Trading"
+                            msg = f"{sym} Active For Trading"
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
