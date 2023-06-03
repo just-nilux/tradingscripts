@@ -2,6 +2,7 @@ from set_strategy_entry_obj import doubleTopEntry, doubleBottomEntry, liqSweepEn
 from strategies.doubleBottomEntry import DoubleBottomDetector
 from strategies.doubleTopEntry import DoubleTopDetector
 from strategies.liqSweepEntry import SweepDetector
+from object_handler import initialize_detectors, object_cleanup
 from position_storage import PositionStorage
 from collections import defaultdict
 from dydxClient import DydxClient
@@ -92,13 +93,14 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
         if set(new_symbols) != set(strategy['symbols']):
             added_symbols += list(set(new_symbols).difference(strategy['symbols']))  # Compute and store the difference
             strategy['symbols'] = list(set(new_symbols))  # Convert to set and back to list to remove duplicates
+            deactivated_sym = list(set(strategy['symbols']).difference(new_symbols))
 
     # Write back the updated json to file
     if added_symbols:
         with open("config.json", 'w') as json_file:
             json.dump(client.config, json_file, indent=2)
 
-    return added_symbols
+    return added_symbols, deactivated_sym
 
 
 
@@ -116,69 +118,6 @@ def timeframe_to_minutes(timeframe):
     timeframe_unit = ''.join(filter(str.isalpha, timeframe))
 
     return timeframe_value * units[timeframe_unit]
-
-
-
-def initialize_detectors(client, detectors=None, atrs=None):
-    if detectors is None:
-        detectors = {}
-
-    if atrs is None:
-        atrs = {}
-
-    for strategy in client.config['strategies']:
-        symbols = set(strategy['symbols'])
-        timeframes = set(strategy['timeframes'])
-        strategy_functions = strategy['strategy_functions']
-
-        for symbol in symbols:
-            for timeframe in timeframes:
-                key = f"{symbol}_{timeframe}"
-
-                if key not in atrs:
-                    atrs[key] = ATR(14)
-
-                for strategy_function in strategy_functions:
-                    key = f"{symbol}_{timeframe}_{strategy_function}"
-                    
-                    if key not in detectors:
-                        if strategy_function == "doubleBottomEntry":
-                            detectors[key] = DoubleBottomDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                        elif strategy_function == "doubleTopEntry":
-                            detectors[key] = DoubleTopDetector(n_periods_to_confirm_swing=5, invalidation_n=72)
-                        elif strategy_function == "liqSweepEntry":
-                            detectors[key] = SweepDetector(n_periods_to_confirm_sweep=5, cross_pct_threshold=0.2)
-                        else:
-                            logger.error(f"Unsupported strategy function: {strategy_function}")
-                            continue
-
-                        logger.debug(f"Initialized detector for {key}")
-
-    # Cleanup step
-    current_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
-    current_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-    
-    keys_to_delete = []
-    for key in detectors.keys():
-        symbol, timeframe, _ = key.split("_")
-        if symbol not in current_symbols or timeframe not in current_timeframes:
-            keys_to_delete.append(key)
-
-    for key in keys_to_delete:
-        del detectors[key]
-        logger.debug(f"Removed detector for {key}")
-
-    keys_to_delete = []
-    for key in atrs.keys():
-        symbol, timeframe = key.split("_")
-        if symbol not in current_symbols or timeframe not in current_timeframes:
-            keys_to_delete.append(key)
-
-    for key in keys_to_delete:
-        del atrs[key]
-        logger.debug(f"Removed atr for {key}")
-
-    return detectors, atrs
 
 
 
@@ -302,11 +241,16 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
 
                 # update active symbols & update entryStrat obj:
                 if liq_levels is not None:
-                    symbols_added = update_config_with_symbols(liq_levels, client)
+                    symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
                             msg = f"{sym} Activated For Trading"
+                            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                    if deactivated_sym:
+                        object_cleanup(client, detectors, atrs)
+                        for sym in deactivated_sym:
+                            msg = f"{sym} Deactivated For Trading"
                             send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
 
 
