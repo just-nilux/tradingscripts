@@ -2,6 +2,8 @@ from strategies.doubleBottomEntry import DoubleBottomDetector
 from strategies.doubleTopEntry import DoubleTopDetector
 from strategies.liqSweepEntry import SweepDetector
 from logger_setup import setup_logger
+from talipp.indicators import ATR
+
 
 
 logger = setup_logger(__name__)

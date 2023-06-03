@@ -10,8 +10,6 @@ from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
 from logger_setup import setup_logger
 from dydx_candle_retriever import get_all
-from talipp.indicators import ATR
-
 
 import asyncio
 import pandas_ta as ta
