@@ -127,8 +127,8 @@ def initialize_detectors(client, detectors=None, atrs=None):
         atrs = {}
 
     for strategy in client.config['strategies']:
-        symbols = strategy['symbols']
-        timeframes = strategy['timeframes']
+        symbols = set(strategy['symbols'])
+        timeframes = set(strategy['timeframes']))
         strategy_functions = strategy['strategy_functions']
 
         for symbol in symbols:
