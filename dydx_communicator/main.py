@@ -82,6 +82,7 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
     """
 
     added_symbols = []
+    deactivated_sym = []
 
     # Find symbols with length == 4 in defaultdict
     new_symbols = [k for k, v in data.items() if len(v) == 4]
