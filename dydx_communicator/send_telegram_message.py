@@ -12,12 +12,19 @@ import requests
 import datetime
 import pytz
 import logging
-
+import json
 
 logger = setup_logger(__name__)
 
+with open('config.json') as config_file:
+    config = json.load(config_file)
 
-def send_telegram_message(bot_token: str, chat_ids: list, text: str, pass_time_limit = False):
+
+
+def send_telegram_message(text: str, pass_time_limit = False):
+    bot_token = config['bot_token']
+    chat_ids = config['chat_ids']
+
     # get current time in Copenhagen timezone
     now = datetime.datetime.now(pytz.timezone('Europe/Copenhagen'))
     current_hour = now.hour

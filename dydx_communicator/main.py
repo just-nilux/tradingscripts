@@ -33,7 +33,7 @@ def send_update(client, symbol, updated):
     updated (bool): Whether the liquidity zones have been updated.
     """
     msg = f"Liquidity Zones have been updated for {symbol}" if updated else f'Update Liquidity Zones: {symbol}'
-    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=updated)
+    send_telegram_message(msg, pass_time_limit=updated)
     if not updated:
         logger.debug(msg)
 
@@ -251,12 +251,12 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
                         for sym in symbols_added:
                             msg = f"{sym} Activated For Trading"
-                            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                            send_telegram_message(msg, pass_time_limit=True)
                     if deactivated_sym:
                         object_cleanup(client, detectors, atrs)
                         for sym in deactivated_sym:
                             msg = f"{sym} Deactivated For Trading"
-                            send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                            send_telegram_message(msg, pass_time_limit=True)
 
 
                 # create unique sets of all symbols and timeframes & fetch df for each:
@@ -277,7 +277,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                 if signals:
                     #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
                     msg = client.fetch_all_open_position(open_pos=len(signals))
-                    send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                    send_telegram_message(msg, pass_time_limit=True)
 
                     for signal in signals:
                         symbol, tf, entry_strat_type, order = signal
@@ -297,7 +297,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                 close_msg = client.send_tg_msg_when_trade_closed()
                 if close_msg:
                     for msg in close_msg:
-                        send_telegram_message(client.config['bot_token'], client.config['chat_ids'], msg, pass_time_limit=True)
+                        send_telegram_message(msg, pass_time_limit=True)
 
 
                 first_iteration = False
@@ -324,6 +324,9 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 def main():
     logger.info("Initializing detectors")
     client = DydxClient()
+    send_telegram_message("Starting Algo Bot", pass_time_limit=True)
+
+
 
     # Initialize PositionStorage
     position_storage = PositionStorage('positions.db')
