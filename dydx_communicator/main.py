@@ -166,7 +166,7 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
-        orders = list()
+
         for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
             strategy_function = globals()[strategy_function_name]
             detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
@@ -210,13 +210,16 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
 
 
-def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdict(list), position_storage: PositionStorage):
+def execute_main(client: DydxClient, json_file_path: str, position_storage: PositionStorage):
 
     try:
         detectors, atrs = initialize_detectors(client)
 
         # Initialize the last hash as an empty string
         process_json_file.last_hash = ''
+
+        # Initialize liq_levels as empyy dict:
+        liq_levels = dict()
 
         # Initialize first_iteration as True
         first_iteration = True
@@ -236,7 +239,10 @@ def execute_main(client: DydxClient, json_file_path: str, liq_levels: defaultdic
                 # Sleep for the remaining seconds
                 time.sleep(remaining_seconds)
 
-                liq_levels = process_json_file(json_file_path)
+                updated_liq_levels = process_json_file(json_file_path)
+                if updated_liq_levels:
+                    liq_levels = updated_liq_levels
+
 
                 # update active symbols & update entryStrat obj:
                 if liq_levels is not None:
@@ -323,7 +329,7 @@ def main():
     position_storage = PositionStorage('positions.db')
 
     # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', defaultdict(list), position_storage))
+    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', position_storage))
     bot_thread.start()
 
     # Run the bot in the main thread
