@@ -8,6 +8,7 @@
   "leverage": 3,
   "strategies": [
     {
+      "in_testmode": true,
       "symbols": [],
       "timeframes": ["1MIN", "1HOUR", "4HOURS"],
       "strategy_functions": ["doubleBottomEntry","doubleTopEntry", "liqSweepEntry"],

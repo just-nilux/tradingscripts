@@ -328,7 +328,7 @@ class DydxClient:
 
 
 
-    def order_size(self, symbol: str, position_size: float) -> Optional[float]:
+    def order_size(self, symbol: str, position_size: float, in_testmode=False) -> Optional[float]:
         """
         Calculate the order size based on the available equity, leverage, and market data.
 
@@ -385,6 +385,10 @@ class DydxClient:
             if calculated_order_size < min_order_size:
                 calculated_order_size = min_order_size
                 self.logger.debug(f"Calculated order size for {symbol} is less than the minimum order size. placing min_order_size")
+
+            if in_testmode:
+                calculated_order_size = min_order_size
+
 
             self.logger.info(f"Calculated order size for {symbol} is {calculated_order_size}")
             return calculated_order_size

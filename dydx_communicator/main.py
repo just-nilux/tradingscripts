@@ -167,45 +167,47 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
 
-        for strategy_function_name in client.config['strategies'][0]['strategy_functions']:
-            strategy_function = globals()[strategy_function_name]
-            detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
-            detector = detectors[detector_key]
-
-
-            try:
-                logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
-                if strategy_function_name == "doubleBottomEntry":
-                    signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
-
-                elif strategy_function_name == "doubleTopEntry":
-                    signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+        for strategy in client.config['strategies']:
+            for strategy_function_name in strategy['strategy_functions']:
                 
-                elif strategy_function_name == "liqSweepEntry":
-                    signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
+                strategy_function = globals()[strategy_function_name]
+                detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
+                detector = detectors[detector_key]
 
-            except Exception as e:
-                logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
-           
-            try:
 
-                if signal[1] in ('SELL', 'BUY'):
-                    logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
+                try:
+                    logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
+                    if strategy_function_name == "doubleBottomEntry":
+                        signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-                    size = float(client.order_size(symbol, client.config['position_size']))
-
-                    logger.info(f"\033[92mPlacing {signal[1]} order for {symbol} with size {size}\033[0m") 
-                    order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
+                    elif strategy_function_name == "doubleTopEntry":
+                        signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
                     
-                    signals.append((symbol, timeframe, signal[2], order))
+                    elif strategy_function_name == "liqSweepEntry":
+                        signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
-                elif signal[1] is None:
-                    logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
-                else:
-                    logger.warning(f"Invalid signal: {signal[1]}")
-                
-            except Exception as e:
-                logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
+                except Exception as e:
+                    logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
+            
+                try:
+
+                    if signal[1] in ('SELL', 'BUY'):
+                        logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
+
+                        size = float(client.order_size(symbol, client.config['position_size'], in_testmode=strategy['in_testmode']))
+
+                        logger.info(f"\033[92mPlacing {signal[1]} order for {symbol} with size {size}\033[0m") 
+                        order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
+                        
+                        signals.append((symbol, timeframe, signal[2], order))
+
+                    elif signal[1] is None:
+                        logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
+                    else:
+                        logger.warning(f"Invalid signal: {signal[1]}")
+                    
+                except Exception as e:
+                    logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
 
 
 
