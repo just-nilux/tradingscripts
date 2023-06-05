@@ -38,7 +38,7 @@ def send_update(client, symbol, updated):
         logger.debug(msg)
 
 
-def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updated: set):
+def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updated: set, updated_liq_levels):
     """
     Check the liquidation zone for each symbol in the data and send a 
     Telegram message if the current price is outside the provided zone.
@@ -56,7 +56,7 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
 
         min_price, max_price = min(prices), max(prices)
 
-        if symbol in liq_zones_to_be_updated and min_price < current_price < max_price:
+        if symbol in liq_zones_to_be_updated and min_price < current_price < max_price and updated_liq_levels:
             send_update(client, symbol, True)
             liq_zones_to_be_updated.remove(symbol)
 
@@ -287,7 +287,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                                 position_storage.insert_position(res, entry_strat_type, tf)
 
 
-                check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated)
+                check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
                 
                 # Cancels all orders for trading pairs which don't have an open position:
                 client.purge_no_pos_orders()
