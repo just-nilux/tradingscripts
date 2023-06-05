@@ -210,7 +210,7 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
 
 
-def execute_main(client: DydxClient, json_file_path: str, position_storage: PositionStorage):
+def execute_main(client: DydxClient, position_storage: PositionStorage, liq_levels: defaultdict(list), liq_levels_lock: threading.Lock):
 
     try:
         detectors, atrs = initialize_detectors(client)
@@ -218,16 +218,11 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
         # Initialize the last hash as an empty string
         process_json_file.last_hash = ''
 
-        # Initialize liq_levels as empty dict:
-        liq_levels = defaultdict(list)
 
         # Initialize first_iteration as True
         first_iteration = True
 
-        #list for Liq. zones that needs to be updated:
-        liq_zones_to_be_updated = set()
-        
-
+     
         while True:
             try:
                 # Get the current time
@@ -239,25 +234,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                 # Sleep for the remaining seconds
                 time.sleep(remaining_seconds)
 
-                updated_liq_levels = process_json_file(json_file_path)
-                if updated_liq_levels:
-                    liq_levels = updated_liq_levels
-
-
-                # update active symbols & update entryStrat obj:
-                if liq_levels is not None:
-                    symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
-                    if symbols_added:
-                        detectors, atrs = initialize_detectors(client, detectors, atrs)
-                        for sym in symbols_added:
-                            msg = f"{sym} Activated For Trading"
-                            send_telegram_message(msg, pass_time_limit=True)
-                    if deactivated_sym:
-                        object_cleanup(client, detectors, atrs)
-                        for sym in deactivated_sym:
-                            msg = f"{sym} Deactivated For Trading"
-                            send_telegram_message(msg, pass_time_limit=True)
-
 
                 # create unique sets of all symbols and timeframes & fetch df for each:
                 all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
@@ -266,11 +242,12 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
                 
                 # execute strategy
-                signals = list()
-                for (symbol, timeframe), df in all_symbol_df.items():
-                    execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df, signals)
-                    #signals.append(res)
-                logger.debug(f"All orders in each iteration is stored in signals: {signals}")
+                with liq_levels_lock:
+                    signals = list()
+                    for (symbol, timeframe), df in all_symbol_df.items():
+                        execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df, signals)
+                        #signals.append(res)
+                    logger.debug(f"All orders in each iteration is stored in signals: {signals}")
 
 
                 # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
@@ -287,20 +264,8 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                                 position_storage.insert_position(res, entry_strat_type, tf)
 
 
-                check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
-                
-                # Cancels all orders for trading pairs which don't have an open position:
-                client.purge_no_pos_orders()
-
-
-                # Send msg in TG when orders are closed:
-                close_msg = client.send_tg_msg_when_trade_closed()
-                if close_msg:
-                    for msg in close_msg:
-                        send_telegram_message(msg, pass_time_limit=True)
-
-
                 first_iteration = False
+
 
                 # Sleep for some time before executing the strategies again (e.g., 60 seconds)
                 logger.debug("Sleeping untill next minute")
@@ -319,6 +284,63 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
         except Exception as e:
             logger.error(f"An error occurred while closing the position storage: {e}")
             logger.exception(e)
+    
+
+
+def execute_task_every_2_seconds(client: DydxClient, json_file_path: str, liq_levels: defaultdict(list), liq_levels_lock: threading.Lock):
+
+    #list for Liq. zones that needs to be updated:
+    liq_zones_to_be_updated = set()
+
+
+    while True:
+        try:
+            # Get the current time
+            current_time = datetime.datetime.now()
+            
+            # If it's the start of a minute, sleep for a short while to avoid running at the same time with execute_main
+            if current_time.second < 2:
+                time.sleep(3)
+
+
+            updated_liq_levels = process_json_file(json_file_path)
+            if updated_liq_levels:
+                with liq_levels_lock:
+                    liq_levels = updated_liq_levels
+
+
+            # update active symbols & update entryStrat obj:
+            if liq_levels is not None:
+                symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
+                if symbols_added:
+                    detectors, atrs = initialize_detectors(client, detectors, atrs)
+                    for sym in symbols_added:
+                        msg = f"{sym} Activated For Trading"
+                        send_telegram_message(msg, pass_time_limit=True)
+                if deactivated_sym:
+                    object_cleanup(client, detectors, atrs)
+                    for sym in deactivated_sym:
+                        msg = f"{sym} Deactivated For Trading"
+                        send_telegram_message(msg, pass_time_limit=True)
+            
+            check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
+
+            # Send msg in TG when orders are closed:
+            close_msg = client.send_tg_msg_when_trade_closed()
+            if close_msg:
+                for msg in close_msg:
+                    send_telegram_message(msg, pass_time_limit=True)
+
+            
+            # Cancels all orders for trading pairs which don't have an open position:
+            client.purge_no_pos_orders()
+
+            # Sleep for 2 seconds before running again
+            time.sleep(2)
+
+        except Exception as e:
+            logger.error(f"An error occurred in the 2-second task execution loop: {e}")
+            logger.exception(e)
 
 
 def main():
@@ -331,8 +353,21 @@ def main():
     # Initialize PositionStorage
     position_storage = PositionStorage('positions.db')
 
+    json_file_path = '/opt/tvserver/database.json'
+
+    # Create a lock object for liq_levels
+    liq_levels_lock = threading.Lock()
+
+    # Initialize liq_levels as empyy dict:
+    liq_levels = defaultdict(list)
+
+    # Use threading to run the other task every 2 seconds in a separate thread
+    task_thread = threading.Thread(target=execute_task_every_2_seconds, args=(client, json_file_path, liq_levels, liq_levels_lock))
+    task_thread.start()
+
+
     # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', position_storage))
+    bot_thread = threading.Thread(target=execute_main, args=(client, position_storage, liq_levels, liq_levels_lock))
     bot_thread.start()
 
     # Run the bot in the main thread
