@@ -10,12 +10,11 @@ from json_file_processor import process_json_file
 from send_telegram_message import bot_main, send_telegram_message
 from logger_setup import setup_logger
 from dydx_candle_retriever import get_all
-
+from datetime import datetime
 import asyncio
 import pandas_ta as ta
 import pandas as pd
 import threading
-import datetime
 import json
 import time
 
@@ -133,81 +132,78 @@ def fetch_support_resistance(symbol, liq_levels):
     resistance_lower = sorted(liq_data)[-2]  # Second highest value
 
 
-    return support_upper, support_lower, resistance_upper, resistance_lower
+    return (support_upper, support_lower, resistance_upper, resistance_lower)
 
 
 
+def atr_controller(df: pd.DataFrame, atrs: dict, symbol: str, timeframe: str, first_iteration: bool):
 
-
-
-
-def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_levels: defaultdict(list), first_iteration: bool, symbol: str, timeframe: str, df: pd.DataFrame, signals: list):
-
-    current_time = datetime.datetime.now()
-    minutes = current_time.minute
-    timeframe_minutes = timeframe_to_minutes(timeframe)
-
-    if not (minutes % timeframe_minutes):
-
-        # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
-        if first_iteration:
-            for _, candle in df.iterrows():
-                atr = atrs[f"{symbol}_{timeframe}"]
-                atr.add_input_value(candle)
-                if not atr:
-                    logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-            last_closed_candle = df.iloc[-1]
-        else:
-            last_closed_candle = df.iloc[-1]
+    # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
+    if first_iteration:
+        for _, candle in df.iterrows():
             atr = atrs[f"{symbol}_{timeframe}"]
-            atr.add_input_value(last_closed_candle)
-           
-       
+            atr.add_input_value(candle)
+            if atr:
+                break
+            elif not atr:
+                logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
+    else:
+        last_closed_candle = df.iloc[-1]
+        atr = atrs[f"{symbol}_{timeframe}"]
 
-        # fetch support and resistance levels
-        support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
-
-        for strategy in client.config['strategies']:
-            for strategy_function_name in strategy['strategy_functions']:
-                
-                strategy_function = globals()[strategy_function_name]
-                detector_key = f"{symbol}_{timeframe}_{strategy_function_name}"
-                detector = detectors[detector_key]
+    return atr[-1]
 
 
-                try:
-                    logger.debug(f"Executing strategy {strategy_function_name} for {symbol} on {timeframe}")
-                    if strategy_function_name == "doubleBottomEntry":
-                        signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-                    elif strategy_function_name == "doubleTopEntry":
-                        signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
-                    
-                    elif strategy_function_name == "liqSweepEntry":
-                        signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
+def execute_strategies(client: DydxClient, detectors: dict, atr: pd.Series, liq_levels: defaultdict(list), first_iteration: bool, symbol: str, timeframe: str, df: pd.DataFrame, signals: list):
 
-                except Exception as e:
-                    logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
+    last_closed_candle = df.iloc[-1]       
+   
+
+    # fetch support and resistance levels
+    support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
+
+    for strategy in client.config['strategies']:
+        for strategy_function in strategy['strategy_functions']:
             
-                try:
+            strategy_function = globals()[strategy_function]
+            detector_key = f"{symbol}_{timeframe}_{strategy_function}"
+            detector = detectors[detector_key]
 
-                    if signal[1] in ('SELL', 'BUY'):
-                        logger.debug(f"Executing signal {strategy_function_name} for {symbol} on {timeframe} - side: {signal[1]}")
 
-                        size = float(client.order_size(symbol, client.config['position_size'], in_testmode=strategy['in_testmode']))
+            try:
+                logger.debug(f"Executing strategy {strategy_function} for {symbol} on {timeframe}")
+                if strategy_function == "doubleBottomEntry":
+                    signal = strategy_function(last_closed_candle, detector, support_zone_upper=support_upper, support_zone_lower=support_lower)
 
-                        logger.info(f"\033[92mPlacing {signal[1]} order for {symbol} with size {size}\033[0m") 
-                        order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr[-1], trigger_candle=signal[0])
-                        
-                        signals.append((symbol, timeframe, signal[2], order))
+                elif strategy_function == "doubleTopEntry":
+                    signal = strategy_function(last_closed_candle, detector, ressist_zone_upper=resistance_upper, ressist_zone_lower=resistance_lower)
+                
+                elif strategy_function == "liqSweepEntry":
+                    signal = strategy_function(last_closed_candle, detector, upper_liq_level=resistance_upper, lower_liq_level=support_lower )
 
-                    elif signal[1] is None:
-                        logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function_name}")
-                    else:
-                        logger.warning(f"Invalid signal: {signal[1]}")
+            except Exception as e:
+                logger.error(f"Error while executing strategy for {symbol} on {timeframe}: {e}")
+        
+            try:
+
+                if signal[1] in ('SELL', 'BUY'):
+                    logger.debug(f"Executing signal {strategy_function} for {symbol} on {timeframe} - side: {signal[1]}")
+
+                    size = float(client.order_size(symbol, client.config['position_size'], in_testmode=strategy['in_testmode']))
+
+                    logger.info(f"\033[92mPlacing {signal[1]} order for {symbol} with size {size}\033[0m") 
+                    order = client.place_market_order(symbol=symbol, size=size, side=signal[1], atr=atr, trigger_candle=signal[0])
                     
-                except Exception as e:
-                    logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function_name}")
+                    signals.append((symbol, timeframe, signal[2], order))
+
+                elif signal[1] is None:
+                    logger.info(f"No signal for symbol: {symbol} on TF: {timeframe} - {strategy_function}")
+                else:
+                    logger.warning(f"Invalid signal: {signal[1]}")
+                
+            except Exception as e:
+                logger.error(f"Error while executing signal for {symbol} on {timeframe}: {e} - {strategy_function}")
 
 
 
@@ -232,15 +228,41 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
         while True:
             try:
-                # Get the current time
-                current_time = datetime.datetime.now()
+                
+                if time.sleep(60 - datetime.now().second) == None:
+                    # create unique sets of all symbols and timeframes & fetch df for each:
+                    all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
+                    all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
+                    all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
 
-                # Calculate the remaining seconds until the next minute
-                remaining_seconds = 60 - current_time.second
+                    
+                    # execute strategy
+                    signals = list()
+                    for (symbol, timeframe), df in all_symbol_df.items():
 
-                # Sleep for the remaining seconds
-                time.sleep(remaining_seconds)
+                        if not (datetime.datetime.now().minute % timeframe_to_minutes(timeframe)):
+                            latest_atr = atr_controller(df, atrs, symbol, timeframe)
+                            liq_zones = fetch_support_resistance(symbol, liq_levels)
+                            for strategy in client.config['strategies']:
+                                for strategy_function in strategy['strategy_functions']:
+                                    execute_strategies(client, detectors, latest_atr, liq_zones, symbol, timeframe, df.iloc[-1], signals)
+                    
+                logger.debug(f"All orders in each iteration is stored in signals: {signals}")
 
+
+                # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
+                if signals:
+                    #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
+                    msg = client.fetch_all_open_position(open_pos=len(signals))
+                    send_telegram_message(msg, pass_time_limit=True)
+
+                    for signal in signals:
+                        symbol, tf, entry_strat_type, order = signal
+                        if len(order) == 3:
+                            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
+                            if res:
+                                position_storage.insert_position(res, entry_strat_type, tf)
+                
                 updated_liq_levels = process_json_file(json_file_path)
                 if updated_liq_levels:
                     liq_levels = updated_liq_levels
@@ -259,34 +281,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                         for sym in deactivated_sym:
                             msg = f"{sym} Deactivated For Trading"
                             send_telegram_message(msg, pass_time_limit=True)
-
-
-                # create unique sets of all symbols and timeframes & fetch df for each:
-                all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
-                all_timeframes = set(timeframe for strategy in client.config['strategies'] for timeframe in strategy['timeframes'])
-                all_symbol_df = asyncio.run(get_all(all_symbols, all_timeframes, first_iteration))
-
-                
-                # execute strategy
-                signals = list()
-                for (symbol, timeframe), df in all_symbol_df.items():
-                    execute_strategies(client, detectors, atrs, liq_levels, first_iteration, symbol, timeframe, df, signals)
-                    #signals.append(res)
-                logger.debug(f"All orders in each iteration is stored in signals: {signals}")
-
-
-                # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
-                if signals:
-                    #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
-                    msg = client.fetch_all_open_position(open_pos=len(signals))
-                    send_telegram_message(msg, pass_time_limit=True)
-
-                    for signal in signals:
-                        symbol, tf, entry_strat_type, order = signal
-                        if len(order) == 3:
-                            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
-                            if res:
-                                position_storage.insert_position(res, entry_strat_type, tf)
 
 
                 check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
@@ -327,8 +321,6 @@ def main():
     logger.info("Initializing detectors")
     client = DydxClient()
     send_telegram_message("Starting Algo Bot", pass_time_limit=True)
-
-
 
     # Initialize PositionStorage
     position_storage = PositionStorage('positions.db')
