@@ -241,7 +241,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                     for (symbol, timeframe), df in all_symbol_df.items():
 
                         if not (datetime.now().minute % timeframe_to_minutes(timeframe)):
-                            latest_atr = atr_controller(df, atrs, symbol, timeframe)
+                            latest_atr = atr_controller(df, atrs, symbol, timeframe, first_iteration)
                             liq_zones = fetch_support_resistance(symbol, liq_levels)
                             for strategy in client.config['strategies']:
                                 for strategy_function in strategy['strategy_functions']:
