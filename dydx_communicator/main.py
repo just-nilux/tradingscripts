@@ -228,7 +228,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
         while True:
             try:
-                
+
                 if time.sleep(60 - datetime.now().second) == None:
                     # create unique sets of all symbols and timeframes & fetch df for each:
                     all_symbols = set(symbol for strategy in client.config['strategies'] for symbol in strategy['symbols'])
@@ -240,7 +240,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                     signals = list()
                     for (symbol, timeframe), df in all_symbol_df.items():
 
-                        if not (datetime.datetime.now().minute % timeframe_to_minutes(timeframe)):
+                        if not (datetime.now().minute % timeframe_to_minutes(timeframe)):
                             latest_atr = atr_controller(df, atrs, symbol, timeframe)
                             liq_zones = fetch_support_resistance(symbol, liq_levels)
                             for strategy in client.config['strategies']:
