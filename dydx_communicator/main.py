@@ -148,8 +148,8 @@ def atr_controller(df: pd.DataFrame, atrs: dict, symbol: str, timeframe: str, fi
             elif not atr:
                 logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
     else:
-        last_closed_candle = df.iloc[-1]
         atr = atrs[f"{symbol}_{timeframe}"]
+        atr.add_input_value(df.iloc[-1])
 
     return atr[-1]
 
@@ -247,21 +247,20 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                                 for strategy_function in strategy['strategy_functions']:
                                     execute_strategies(client, detectors, latest_atr, liq_zones, symbol, timeframe, df.iloc[-1], signals)
                     
-                logger.debug(f"All orders in each iteration is stored in signals: {signals}")
 
+                    logger.debug(f"All orders in each iteration is stored in signals: {signals}")
+                    # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
+                    if signals:
+                        #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
+                        msg = client.fetch_all_open_position(open_pos=len(signals))
+                        send_telegram_message(msg, pass_time_limit=True)
 
-                # if signal: send TG msg. for open orders & save info to DB: ( skal stadig laves)
-                if signals:
-                    #msg = client.fetch_all_open_position(open_pos=sum([len(tup) for tup in signals]))
-                    msg = client.fetch_all_open_position(open_pos=len(signals))
-                    send_telegram_message(msg, pass_time_limit=True)
-
-                    for signal in signals:
-                        symbol, tf, entry_strat_type, order = signal
-                        if len(order) == 3:
-                            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
-                            if res:
-                                position_storage.insert_position(res, entry_strat_type, tf)
+                        for signal in signals:
+                            symbol, tf, entry_strat_type, order = signal
+                            if len(order) == 3:
+                                res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
+                                if res:
+                                    position_storage.insert_position(res, entry_strat_type, tf)
                 
                 updated_liq_levels = process_json_file(json_file_path)
                 if updated_liq_levels:
