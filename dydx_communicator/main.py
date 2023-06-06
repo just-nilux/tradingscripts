@@ -156,7 +156,7 @@ def atr_controller(df: pd.DataFrame, atrs: dict, symbol: str, timeframe: str, fi
 
 
 
-def execute_strategies(client: DydxClient, detectors: dict, atr: pd.Series, liq_levels: defaultdict(list), first_iteration: bool, symbol: str, timeframe: str, df: pd.DataFrame, signals: list):
+def execute_strategies(client: DydxClient, detectors: dict, atr: pd.Series, liq_levels: defaultdict(list), symbol: str, timeframe: str, df: pd.DataFrame, signals: list):
 
     last_closed_candle = df.iloc[-1]       
    
