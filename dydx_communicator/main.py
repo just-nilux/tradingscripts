@@ -262,6 +262,8 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                                 res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
                                 if res:
                                     position_storage.insert_position(res, entry_strat_type, tf)
+                    first_iteration = False
+
                 
                 updated_liq_levels = process_json_file(json_file_path)
                 if updated_liq_levels:
@@ -296,7 +298,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                         send_telegram_message(msg, pass_time_limit=True)
 
 
-                first_iteration = False
 
                 # Sleep for some time before executing the strategies again (e.g., 60 seconds)
                 logger.debug("Sleeping untill next minute")
