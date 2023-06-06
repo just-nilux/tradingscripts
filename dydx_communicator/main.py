@@ -139,16 +139,17 @@ def fetch_support_resistance(symbol, liq_levels):
 def atr_controller(df: pd.DataFrame, atrs: dict, symbol: str, timeframe: str, first_iteration: bool):
 
     # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
-    if first_iteration:
+
+    atr = atrs[f"{symbol}_{timeframe}"]
+
+    if not atr:
         for _, candle in df.iterrows():
-            atr = atrs[f"{symbol}_{timeframe}"]
             atr.add_input_value(candle)
             if atr:
                 break
             elif not atr:
                 logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
     else:
-        atr = atrs[f"{symbol}_{timeframe}"]
         atr.add_input_value(df.iloc[-1])
 
     return atr[-1]
