@@ -243,6 +243,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
                         if not (datetime.now().minute % timeframe_to_minutes(timeframe)):
                             latest_atr = atr_controller(df, atrs, symbol, timeframe, first_iteration)
+                            first_iteration = False
                             liq_zones = fetch_support_resistance(symbol, liq_levels)
                             for strategy in client.config['strategies']:
                                 for strategy_function in strategy['strategy_functions']:
@@ -262,7 +263,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                                 res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
                                 if res:
                                     position_storage.insert_position(res, entry_strat_type, tf)
-                    first_iteration = False
 
                 
                 updated_liq_levels = process_json_file(json_file_path)
