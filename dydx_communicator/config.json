@@ -1,9 +1,9 @@
 {
-  "dydx_api_key": "4cfcd665-2d1d-c7b7-c183-8b1a5811ba0d",
-  "dydx_api_secret": "MM4zbyTHAGjBkXB1qbu6gjYbG47VhiFLneu2xLw6",
-  "dydx_passphrase" : "YfY5jZIL2a2_ud3RAvxQ",
+  "dydx_api_key": "2aeec835-a3c7-86a3-27fb-5645e65220b9",
+  "dydx_api_secret": "zNotMg-9iHpA9brAi4AiefZ99YYjyHCsVYjGu5By",
+  "dydx_passphrase" : "IflOg0A0XGnRbr7iXNpx",
   "dydx_stark_private_key": "0596d82bf1d1768d4cef18672a41a6225866887c7dd3dd6bd266187b558a1f87",
-  "dydx_default_ethereum_address": "0x54717a548a8e48fcce4423568bb0826d3f31c3b5",
+  "dydx_default_ethereum_address": "0x1e84b19444fb897805549b9c88df7efcadc092df",
   "position_size": 0.01,
   "leverage": 3,
   "strategies": [
