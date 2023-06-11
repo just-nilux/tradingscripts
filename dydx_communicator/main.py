@@ -92,8 +92,9 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
     for strategy in client.config['strategies']:
         if set(new_symbols) != set(strategy['symbols']):
             added_symbols += list(set(new_symbols).difference(strategy['symbols']))  # Compute and store the difference
-            strategy['symbols'] = list(set(new_symbols))  # Convert to set and back to list to remove duplicates
             deactivated_sym += list(set(strategy['symbols']).difference(new_symbols))
+            strategy['symbols'] = list(set(new_symbols))  # Convert to set and back to list to remove duplicates
+
 
     # Write back the updated json to file
     if added_symbols:
