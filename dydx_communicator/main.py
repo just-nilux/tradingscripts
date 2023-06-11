@@ -242,12 +242,11 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                 time.sleep(remaining_seconds)
 
                 updated_liq_levels = process_json_file(json_file_path)
+
+                # update active symbols & update entryStrat obj:
                 if updated_liq_levels:
                     liq_levels = updated_liq_levels
 
-
-                # update active symbols & update entryStrat obj:
-                if liq_levels is not None:
                     symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
                     if symbols_added:
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
