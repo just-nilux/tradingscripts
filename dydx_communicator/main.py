@@ -101,9 +101,6 @@ def update_config_with_symbols(data: defaultdict, client: DydxClient):
         with open("config.json", 'w') as json_file:
             json.dump(client.config, json_file, indent=2)
 
-    print(f"added symbols: {added_symbols}")
-    print(f"deactivated symbols: {deactivated_sym}")
-
     return added_symbols, deactivated_sym
 
 
@@ -245,7 +242,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                     liq_levels = updated_liq_levels
 
                     symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
-                    print(f"print of return deactivated_sym {deactivated_sym}")
                     if symbols_added:
                         first_iteration = True
                         detectors, atrs = initialize_detectors(client, detectors, atrs)
@@ -253,9 +249,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                             msg = f"{sym} Activated For Trading"
                             send_telegram_message(msg, pass_time_limit=True)
                     if deactivated_sym:
-                        print(f"deactivated sym before obj_cleanup: {deactivated_sym}")
                         object_cleanup(client, detectors, atrs)
-                        print(f"deactivated sym after ogj_cleanup: {deactivated_sym}")
                         for sym in deactivated_sym:
                             msg = f"{sym} Deactivated For Trading"
                             send_telegram_message(msg, pass_time_limit=True)
