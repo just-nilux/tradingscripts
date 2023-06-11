@@ -152,21 +152,19 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
     if not (minutes % timeframe_minutes):
 
+        last_closed_candle = df.iloc[-1]
+
         # If it's the first iteration, add all candles to the ATR. Otherwise, add only the last candle.
-        if first_iteration:
+        atr = atrs[f"{symbol}_{timeframe}"]
+        if first_iteration and not atr:
             for _, candle in df.iterrows():
-                atr = atrs[f"{symbol}_{timeframe}"]
                 atr.add_input_value(candle)
                 if not atr:
                     logger.debug(f"ATR not available for {symbol} on {timeframe} - no. input values: {len(atr.input_values)} - Needs: {atr.period}")
-            last_closed_candle = df.iloc[-1]
         else:
-            last_closed_candle = df.iloc[-1]
-            atr = atrs[f"{symbol}_{timeframe}"]
             atr.add_input_value(last_closed_candle)
            
        
-
         # fetch support and resistance levels
         support_upper, support_lower, resistance_upper, resistance_lower = fetch_support_resistance(symbol, liq_levels)
 
@@ -218,6 +216,7 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 def execute_main(client: DydxClient, json_file_path: str, position_storage: PositionStorage):
 
     try:
+        logger.info("Initializing detectors")
         detectors, atrs = initialize_detectors(client)
 
         # Initialize the last hash as an empty string
@@ -235,14 +234,8 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
         while True:
             try:
-                # Get the current time
-                current_second = datetime.now().second
-
-                # Calculate the remaining seconds until the next minute
-                remaining_seconds = 60 - current_second
-
-                # Sleep for the remaining seconds
-                time.sleep(remaining_seconds)
+                # Sleep for the remaining seconds untill the next minute:
+                time.sleep(60-datetime.now().second)
 
                 updated_liq_levels = process_json_file(json_file_path)
 
@@ -328,7 +321,6 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
 
 
 def main():
-    logger.info("Initializing detectors")
     client = DydxClient()
     send_telegram_message("Starting Algo Bot", pass_time_limit=True)
 
