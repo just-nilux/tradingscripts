@@ -83,7 +83,7 @@ class DoubleBottomDetector:
 
             if self.current_row.open > self.support_zone_upper and self.current_row.low <= self.support_zone_upper and self.current_row.close >= self.support_zone_lower:
 
-                self.timestamp_for_first_touch = self.current_row.Index
+                self.timestamp_for_first_touch = self.current_row.name
                 self.buy_zone = (min(self.current_row.close, self.support_zone_upper), self.current_row.low)
 
                 self.logger.info(f'Support Zone upper: {self.support_zone_upper}')
@@ -95,13 +95,13 @@ class DoubleBottomDetector:
 
             if self.current_row.close < self.support_zone_lower:
                 
-                self.logger.warning(f"Candle closed below lower support zone at: {self.current_row.Index}. Setup invalid.")
+                self.logger.warning(f"Candle closed below lower support zone at: {self.current_row.name}. Setup invalid.")
                 self.reset()
                 return None
             
             elif self.current_row.close < self.buy_zone[1]:
 
-                self.logger.warning(f"Candle closed below buy zone at: {self.current_row.Index}. Setup invalid.")
+                self.logger.warning(f"Candle closed below buy zone at: {self.current_row.name}. Setup invalid.")
                 self.reset()
                 return None
             
@@ -115,7 +115,7 @@ class DoubleBottomDetector:
                     return None
             
                 elif self.current_row.low <= self.buy_zone[0]:
-                    self.logger.info(f"Price in buy zone: {self.current_row.Index}")
+                    self.logger.info(f"Price in buy zone: {self.current_row.name}")
                     self.reset()
                     return (self.current_row, "BUY", "Double_Bottom_Entry")
 
@@ -127,7 +127,7 @@ class DoubleBottomDetector:
 
                     if self.candle_counter == self.n_periods_to_confirm_swing:
 
-                        self.logger.info(f'Swing after first touch detected: {self.current_row.Index}')
+                        self.logger.info(f'Swing after first touch detected: {self.current_row.name}')
                         self.swing_detected = True
 
                 elif self.current_row.low < self.support_zone_upper:
