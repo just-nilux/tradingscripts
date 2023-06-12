@@ -12,7 +12,8 @@
       "symbols": [],
       "timeframes": ["1MIN", "1HOUR", "4HOURS"],
       "strategy_functions": ["doubleBottomEntry","doubleTopEntry", "liqSweepEntry"],
-      "risk_to_reward_ratio": 2
+      "risk_to_reward_ratio": 2,
+      "break_even_trigger_percent": 40
     }
   ],
   "bot_token": "5951325673:AAGvqkhnogQGZPsg8B72xChi5FRsjTEbeDk",

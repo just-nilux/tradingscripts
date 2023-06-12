@@ -566,4 +566,94 @@ class DydxClient:
 
 
 
-            
+
+
+
+
+
+
+
+
+    def move_sl_to_be(self, progress_threshold=40):
+
+        # Punkt 1: Hent alle åbne positioner
+        positions_data = self.client.private.get_positions(status='OPEN').data['positions']
+
+        if not positions_data:
+            return
+
+        for position in positions_data:
+            # Punkt 2: Hent take_profit orden for hvert symbol
+            orders_data = self.client.client.private.get_orders(market=position['market'], order_type="TAKE_PROFIT").data
+            if orders_data['orders']:
+                take_profit_price = float(orders_data['orders'][0]['triggerPrice'])
+                
+                # Punkt 3: Hent oracle pris for det gældende symbol
+                market_data = self.client.client.public.get_markets(market=position['market']).data
+                current_price = float(market_data['markets'][position['market']]['oraclePrice'])
+
+                # Punkt 4: Beregn hvor langt i mål traden er pt
+                entry_price = float(position['entryPrice'])
+
+                # Beregn progress afhængig af om handlen er LONG eller SHORT
+                if position['side'] == 'LONG':
+                    progress = ((current_price - entry_price) / (take_profit_price - entry_price)) * 100
+                elif position['side'] == 'SHORT':
+                    progress = ((entry_price - current_price) / (entry_price - take_profit_price)) * 100
+
+                self.logger.info(f"Progress for {position['market']}: {progress}%")
+
+                # Flyt SL til BE når traden har nået progress_threshold af sit take_profit mål
+                if progress >= progress_threshold:
+                    self.logger.info(f"{position['market']} has reached {progress_threshold}% of its take_profit target. Moving SL to BE.")
+                    
+                    # Hent order_id for den SL orden, der skal flyttes
+                    sl_order_data = self.client.private.get_orders(market=position['market'], order_type="STOP_LIMIT").data
+                    if sl_order_data['orders']:
+                        order_id_to_cancel = sl_order_data['orders'][0]['id']
+
+                        # Annuller den pågældende orden
+                        res = self.client.private.cancel_active_orders(market=position['market'], id=order_id_to_cancel, side='BUY').data
+                        self.logger.info(f"Canceled order with id {order_id_to_cancel}.")
+                        
+                        # Place new stop limit order at break-even price
+                        self.set_new_sl(position, entry_price)
+                    else:
+                        self.logger.info(f"No STOP_LIMIT order found for {position['market']}")
+            else:
+                self.logger.info(f"No take_profit order found for {position['market']}")
+
+
+
+
+
+    def set_new_sl(self, position, break_even_price):
+
+        order_params = {}
+
+        # Assuming these parameters are needed. Adjust according to your actual needs.
+        order_params['market'] = position['market']
+        order_params['reduce_only'] = True
+        order_params['time_in_force'] = "IOC"
+        order_params['order_type'] = "STOP_LIMIT"
+
+        # Calculate the side based on the original position
+        if position['side'] == 'LONG':
+            order_params['side'] = 'SELL'
+            # Set a wide limit price for stop-limit orders to mimic a stop-market order
+            wide_limit_price = round((break_even_price * 0.95), 2)  # adjust the rounding as needed
+        else:
+            order_params['side'] = 'BUY'
+            wide_limit_price = round((break_even_price * 1.05), 2)  # adjust the rounding as needed
+
+        # Set the price and trigger_price to the calculated wide_limit_price
+        order_params['price'] = str(wide_limit_price)
+        order_params['trigger_price'] = str(break_even_price)  # the trigger price is the break-even price
+
+        order_response = self.client.private.create_order(**order_params)
+        order_id = order_response.data['order']['id']
+
+        self.logger.info(f"New stop limit order placed with id {order_id}.")
+
+
+                

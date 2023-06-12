@@ -285,6 +285,8 @@ def execute_main(client: DydxClient, json_file_path: str):
                             if res:
                                 position_storage.insert_position(res, entry_strat_type, tf)
 
+                # Check open positions and moves SL to BE if threshold reached:
+                client.move_sl_to_be(client.config['strategies'][0]['break_even_trigger_percent'])
 
                 check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
                 
