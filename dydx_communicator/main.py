@@ -238,7 +238,7 @@ def execute_main(client: DydxClient, json_file_path: str, position_storage: Posi
                 updated_liq_levels, updated_since_last_time = process_json_file(json_file_path)
 
                 # update active symbols & update entryStrat obj:
-                if updated_liq_levels and updated_since_last_time:
+                if updated_liq_levels or updated_since_last_time:
                     liq_levels = updated_liq_levels
 
                     symbols_added, deactivated_sym = update_config_with_symbols(liq_levels, client)
