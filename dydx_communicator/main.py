@@ -55,17 +55,11 @@ def check_liquidation_zone(data: dict, client: DydxClient, liq_zones_to_be_updat
 
         current_price = float(client.client.public.get_markets(market=symbol).data['markets'][symbol]['oraclePrice'])
 
-        min_price, max_price = min(prices), max(prices)
-        print(f"max price: {max_price}")
-        print(f"current price: {current_price}")
-        print(f"min price: {min_price}")
-        
+        min_price, max_price = min(prices), max(prices)    
         
         if symbol in liq_zones_to_be_updated and min_price < current_price < max_price and updated_liq_levels:
             send_update(client, symbol, True)
             liq_zones_to_be_updated.remove(symbol)
-
-        # elif not min_price < current_price < max_price:
 
         if current_price < min_price or current_price > max_price:        
             liq_zones_to_be_updated.add(symbol)
