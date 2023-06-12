@@ -27,8 +27,10 @@ def process_json_file(file_path):
     # Check if the file has been updated since the last execution
     if current_hash == process_json_file.last_hash:
         logger.info("File has not been updated since the last execution.")
-        return
+        return None, None
 
+
+    json_were_updated_since_last_iteration = True
     logger.info("File was updated since last execation")
     # Update the last hash with the current hash
     process_json_file.last_hash = current_hash
@@ -52,4 +54,4 @@ def process_json_file(file_path):
     #    rounded_prices = [round(price, 2) for price in prices]  # Round the prices
     #    print(f"Symbol: {symbol}, Prices: {rounded_prices}")
     
-    return results
+    return results, json_were_updated_since_last_iteration
