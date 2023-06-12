@@ -211,7 +211,9 @@ def execute_strategies(client: DydxClient, detectors: dict, atrs: dict, liq_leve
 
 
 
-def execute_main(client: DydxClient, json_file_path: str, position_storage: PositionStorage):
+def execute_main(client: DydxClient, json_file_path: str):
+    # Initialize PositionStorage
+    position_storage = PositionStorage('positions.db')
 
     try:
         logger.info("Initializing detectors")
@@ -323,12 +325,8 @@ def main():
     send_telegram_message("Starting Algo Bot", pass_time_limit=True)
 
 
-
-    # Initialize PositionStorage
-    position_storage = PositionStorage('positions.db')
-
     # Start the bot in a separate thread
-    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json', position_storage))
+    bot_thread = threading.Thread(target=execute_main, args=(client, '/opt/tvserver/database.json'))
     bot_thread.start()
 
     # Run the bot in the main thread
