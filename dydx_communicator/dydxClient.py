@@ -536,7 +536,6 @@ class DydxClient:
                 #order_type.append(TPSL_ORDER_TYPE[i])
                 order_ids[TPSL_ORDER_TYPE[i]] = order_id
 
-            print(order_ids)
             return order_ids    #order_type
 
      
