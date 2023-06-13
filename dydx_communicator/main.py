@@ -280,10 +280,9 @@ def execute_main(client: DydxClient, json_file_path: str):
 
                     for signal in signals:
                         symbol, tf, entry_strat_type, order = signal
-                        if isinstance(order, list) and len(order) == 3:
-                            res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
-                            if res:
-                                position_storage.insert_position(res, entry_strat_type, tf)
+                        if isinstance(order, dict) and len(order) == 3:
+                            #res = next((pos for pos in client.client.private.get_positions(status='Open').data.get('positions') if pos['market'] == symbol), None)
+                            position_storage.insert_position(order['position'], order['TAKE_PROFIT'], order['SELL_LIMIT'], entry_strat_type, tf)
 
                 # Check open positions and moves SL to BE if threshold reached:
                 client.move_sl_to_be(client.config['strategies'][0]['break_even_trigger_percent'])

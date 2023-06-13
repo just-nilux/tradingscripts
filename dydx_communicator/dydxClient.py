@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 
 
+
 class DydxClient:
     def __init__(self):
 
@@ -484,6 +485,8 @@ class DydxClient:
             price = round(price / tick_size) * tick_size
             decimals = abs((decimal.Decimal(market_data['markets'][symbol]['indexPrice']).as_tuple().exponent))
             expiration_epoch_seconds = int((pd.Timestamp.utcnow() + pd.Timedelta(weeks=1)).timestamp())
+            order_ids = dict()
+
 
             order_params = {
                 'position_id': self.position_id, 
@@ -500,14 +503,16 @@ class DydxClient:
 
             order_response = self.client.private.create_order(**order_params)
             order_id = order_response.data['order']['id']
-
             if not order_id:
-                self.logger.error(f'place {side} market order for {symbol} did not go through')
-                return
+               self.logger.error(f'place {side} market order for {symbol} did not go through')
+               return
+            
+            order_ids['position'] = order_response['order']
+           
 
             # Stop-Loss & Take-Profit order:
-            order_ids = list()
-            order_ids.append(side)
+            #order_type = list()
+            #order_type.append(side)
 
             TPSL_ORDER_TYPE = ['TAKE_PROFIT', 'STOP_LIMIT']
             tpsl = self.calculate_tp_sl(price, atr, side, trigger_candle, tick_size)
@@ -528,10 +533,11 @@ class DydxClient:
 
                 order_response = self.client.private.create_order(**order_params)
                 order_id = order_response.data['order']['id']
-                order_ids.append(TPSL_ORDER_TYPE[i])
+                #order_type.append(TPSL_ORDER_TYPE[i])
+                order_ids[TPSL_ORDER_TYPE[i]] = order_id
 
 
-            return order_ids
+            return order_ids    #order_type
 
      
         except Exception as e:
@@ -548,28 +554,7 @@ class DydxClient:
         Returns:
             str: A formatted message containing information about the opened trade.
         """
-
-        #position = self.client.private.get_positions(status='Open').data['positions'][0]
-
-        #msg = (
-        #    f"*** TRADE OPENED ***\n"
-        #    f"Opened At: {datetime.fromisoformat(position['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')}\n"
-        #    f"Market: {position['market']}\n"
-        #    f"Status: {position['status']}\n"
-        #    f"Side: {position['side']}\n"
-        #    f"Size: {position['maxSize']}\n"
-        #    f"Entry Price: {position['entryPrice']}\n"
-        #    f"Unrealized PnL: {position['unrealizedPnl']}\n"
-        #)
-
         return self.fetch_all_open_position(symbol=symbol)
-
-
-
-
-
-
-
 
 
 
