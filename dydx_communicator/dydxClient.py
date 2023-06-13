@@ -574,7 +574,7 @@ class DydxClient:
                 take_profit_price = float(orders_data['orders'][0]['triggerPrice'])
                 
                 # Punkt 3: Hent oracle pris for det gældende symbol
-                market_data = self.client.client.public.get_markets(market=position['market']).data
+                market_data = self.client.public.get_markets(market=position['market']).data
                 current_price = float(market_data['markets'][position['market']]['oraclePrice'])
 
                 # Punkt 4: Beregn hvor langt i mål traden er pt
