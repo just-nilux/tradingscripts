@@ -87,4 +87,51 @@ class PositionStorage:
         except Error as e:
             self.logger.error(f"Error inserting position: {e}")
 
+    
+
+
+    def update_position_status(self, client):
+        """ Update status of each open position in the positions table """
+        
+        # SQL statement to select open positions
+        select_sql = 'SELECT id FROM positions WHERE unfillableAt IS NULL'
+        
+        # SQL statement to update position data
+        update_sql = '''UPDATE positions SET status = ?, remainingSize = ?, unfillableAt = ? WHERE id = ?'''
+        
+        # List to store the updated positions
+        updated_positions = []
+        
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                
+                # Execute SELECT statement
+                cur.execute(select_sql)
+                open_positions = cur.fetchall()
+                
+                for pos_id in open_positions:
+                    # Call the dydx exchange API for each open position
+                    response = client.private.get_order_by_id(pos_id[0]).data['order']
+
+                    # Extract data from API response
+                    status = response['status']
+                    remaining_size = response['remainingSize']
+                    unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
+
+                    if unfillable_at:
+                        # Add the position id to the list of updated positions
+                        updated_positions.append(pos_id[0])
+
+                    # Execute UPDATE statement
+                    cur.execute(update_sql, (status, remaining_size, unfillable_at, pos_id[0]))
+        except Error as e:
+            self.logger.error(f"Error updating position status: {e}")
+
+        # Return the list of updated position ids
+        return updated_positions
+
+
+
+
 
