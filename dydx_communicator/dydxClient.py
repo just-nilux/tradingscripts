@@ -536,7 +536,7 @@ class DydxClient:
                 #order_type.append(TPSL_ORDER_TYPE[i])
                 order_ids[TPSL_ORDER_TYPE[i]] = order_id
 
-
+            print(order_ids)
             return order_ids    #order_type
 
      
@@ -569,7 +569,7 @@ class DydxClient:
 
         for position in positions_data:
             # Punkt 2: Hent take_profit orden for hvert symbol
-            orders_data = self.client.client.private.get_orders(market=position['market'], order_type="TAKE_PROFIT").data
+            orders_data = self.client.private.get_orders(market=position['market'], order_type="TAKE_PROFIT").data
             if orders_data['orders']:
                 take_profit_price = float(orders_data['orders'][0]['triggerPrice'])
                 
