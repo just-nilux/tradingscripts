@@ -507,7 +507,7 @@ class DydxClient:
                self.logger.error(f'place {side} market order for {symbol} did not go through')
                return
             
-            order_ids['position'] = order_response['order']
+            order_ids['position'] = order_response.data['order']
            
 
             # Stop-Loss & Take-Profit order:
