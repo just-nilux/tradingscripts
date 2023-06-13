@@ -36,17 +36,17 @@ class PositionStorage:
                                         entryStrat text,
                                         timeframe text,
                                         TAKE_PROFIT_ID text,
-                                        SELL_LIMIT_ID text
+                                        STOP_LIMIT text
                                     ); """)
         except Error as e:
             self.logger.error(f"{e}")
 
 
 
-    def insert_position(self, position_data, TAKE_PROFIT, SELL_LIMIT, entrystrat, timeframe):
+    def insert_position(self, position_data, TAKE_PROFIT, STOP_LIMIT, entrystrat, timeframe):
         """ insert a new position into the positions table """
         sql = ''' INSERT INTO positions(id, market, side, price, triggerPrice, size, type, createdAt, unfillableAt, expiresAt, status, cancelReason, entryStrat,
-                timeframe, TAKE_PROFIT_ID, SELL_LIMIT_ID) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
 
         try:
             created_at = datetime.strptime(position_data['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if position_data['createdAt'] else None
@@ -78,7 +78,7 @@ class PositionStorage:
             entrystrat,
             timeframe,
             TAKE_PROFIT,
-            SELL_LIMIT
+            STOP_LIMIT
         )
         try:
             with self.conn:
