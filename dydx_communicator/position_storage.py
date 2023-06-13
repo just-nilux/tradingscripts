@@ -36,7 +36,7 @@ class PositionStorage:
                                         entryStrat text,
                                         timeframe text,
                                         TAKE_PROFIT_ID text,
-                                        STOP_LIMIT text
+                                        STOP_LIMIT_ID text
                                     ); """)
         except Error as e:
             self.logger.error(f"{e}")
