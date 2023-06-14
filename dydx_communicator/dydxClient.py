@@ -12,9 +12,6 @@ from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
 from datetime import datetime, timezone
 
-from position_storage import PositionStorage
-
-
 
 
 class DydxClient:
@@ -25,9 +22,6 @@ class DydxClient:
 
         with open('asset_config.json') as f:
             self.asset_resolution = json.load(f)
-
-
-        self.position_storage = PositionStorage('positions.db')
 
         self.api_key = self.config['dydx_api_key']
         self.secret_key = self.config['dydx_api_secret']
@@ -646,9 +640,9 @@ class DydxClient:
 
 
     
-    def check_if_orders_is_closed(self):
+    def check_if_orders_is_closed(self, position_storage):
 
-        orders = self.position_storage.get_order_ids_for_not_closed_positions()
+        orders = position_storage.get_order_ids_for_not_closed_positions()
 
         if not orders:
             return
@@ -672,14 +666,14 @@ class DydxClient:
             if not res['status'] == 'FILLED':
                 self.logger.error(f'{order} have not been CLOSED')
                 continue
-            pos_id, order_id = self.position_storage.get_record_by_order_id(order)
+            pos_id, order_id = position_storage.get_record_by_order_id(order)
 
             # Cancel the remaining order:
             self.client.private.cancel_order(order_id)
 
 
         # opdater' position i db på id ('status' = 'CLOSED')
-            self.position_storage.update_status_by_id(pos_id, "Closed")
+            position_storage.update_status_by_id(pos_id, "Closed")
 
         
         

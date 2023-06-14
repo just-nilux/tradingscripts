@@ -291,7 +291,7 @@ def execute_main(client: DydxClient, json_file_path: str):
                 
                 # Cancels all orders for trading pairs which don't have an open position:
                 #client.purge_no_pos_orders()
-                client.check_if_orders_is_closed()
+                client.check_if_orders_is_closed(position_storage)
 
 
                 # Send msg in TG when orders are closed:
