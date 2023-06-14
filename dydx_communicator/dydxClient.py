@@ -10,6 +10,7 @@ from dydx3 import Client
 from typing import Tuple, List, Optional
 from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
+from dydx3.errors import DydxApiError
 from datetime import datetime, timezone
 
 
@@ -657,14 +658,18 @@ class DydxClient:
 
         # check if closed + cancel the remaining order + update DB to "CLOSED":
         for order in order_ids_that_have_been_closed:
+           
             res = self.client.private.get_order_by_id(order).data['order']
-            if not res['status'] == 'FILLED':
-                self.logger.error(f'{order} have not been CLOSED')
-                continue
-            pos_id, order_id = position_storage.get_record_by_order_id(order)
 
-            # Cancel the remaining order:
-            self.client.private.cancel_order(order_id)
+            #if not res['status'] == 'FILLED':
+            #   self.logger.error(f'{order} have not been CLOSED')
+            #    continue
+            
+            pos_id, order_id = position_storage.get_record_by_order_id(order)
+            
+            if res['status'] != "CANCELED":
+                # Cancel the remaining order:
+                self.client.private.cancel_order(order_id)
 
 
             # opdater' position i db på id ('status' = 'CLOSED')
