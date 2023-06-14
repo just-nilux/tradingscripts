@@ -107,7 +107,7 @@ class PositionStorage:
 
         
         # SQL statement to update position data
-        update_sql = '''UPDATE positions SET status = ?, remainingSize = ?, unfillableAt = ? WHERE id = ?'''
+        update_sql = '''UPDATE positions SET status = ?, unfillableAt = ? WHERE id = ?'''
         
         try:
             with self.conn:
@@ -119,16 +119,15 @@ class PositionStorage:
                 
                 for pos_id in open_positions:
                     # Call the dydx exchange API for each open position
-                    response = client.private.get_order_by_id(pos_id[0]).data['order']
+                    response = client.client.private.get_order_by_id(pos_id[0]).data['order']
 
                     # Extract data from API response
                     status = response['status']
-                    remaining_size = response['remainingSize']
                     unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
 
 
                     # Execute UPDATE statement
-                    cur.execute(update_sql, (status, remaining_size, unfillable_at, pos_id[0]))
+                    cur.execute(update_sql, (status, unfillable_at, pos_id[0]))
         except Error as e:
             self.logger.error(f"Error updating position status: {e}")
 

@@ -645,7 +645,7 @@ class DydxClient:
         
         # all orders are still open
         if len(open_orders) == len(orders)*2:
-            self.logger.debug(f"len(open_orders) on DYDX == len(orders) in db - {len(open_orders)} on DYDX == {len(orders)} in db")
+            #self.logger.debug(f"len(open_orders) on DYDX == len(orders) in db - {len(open_orders)} on DYDX == {len(orders)*2} in db")
             return
 
         open_order_ids_on_dydx = set([order['id'] for order in open_orders])
