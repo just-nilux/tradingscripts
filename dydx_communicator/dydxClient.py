@@ -424,7 +424,7 @@ class DydxClient:
         if risk_to_reward_ratio is None:
             risk_to_reward_ratio = self.config['strategies'][0]['risk_to_reward_ratio']
 
-        atr_value = atr * 10
+        atr_value = atr * 3
         
         if side == 'BUY':
             stop_loss = trigger_candle.low - atr_value
@@ -508,9 +508,6 @@ class DydxClient:
            
 
             # Stop-Loss & Take-Profit order:
-            #order_type = list()
-            #order_type.append(side)
-
             TPSL_ORDER_TYPE = ['TAKE_PROFIT', 'STOP_LIMIT']
             tpsl = self.calculate_tp_sl(price, atr, side, trigger_candle, tick_size)
 
@@ -530,12 +527,9 @@ class DydxClient:
 
                 order_response = self.client.private.create_order(**order_params)
                 order_id = order_response.data['order']['id']
-                #order_type.append(TPSL_ORDER_TYPE[i])
                 order_ids[TPSL_ORDER_TYPE[i]] = order_response.data['order']
-            
-            print(order_ids)
 
-            return order_ids    #order_type
+            return order_ids
 
      
         except Exception as e:
@@ -647,10 +641,11 @@ class DydxClient:
         if not orders:
             return
         
-        open_orders = self.client.private.get_order(status="UNTRIGGERED").data['orders']
+        open_orders = self.client.private.get_orders(status="UNTRIGGERED").data['orders']
         
         # all orders are still open
         if len(open_orders) == len(orders)*2:
+            self.logger.debug(f"len(open_orders) on DYDX == len(orders) in db - no. of open order: {len(open_orders)}")
             return
 
         open_order_ids_on_dydx = set([order['id'] for order in open_orders])
@@ -672,8 +667,8 @@ class DydxClient:
             self.client.private.cancel_order(order_id)
 
 
-        # opdater' position i db på id ('status' = 'CLOSED')
-            position_storage.update_status_by_id(pos_id, "Closed")
+            # opdater' position i db på id ('status' = 'CLOSED')
+            position_storage.update_status_by_id(pos_id, "CLOSED")
 
         
         
