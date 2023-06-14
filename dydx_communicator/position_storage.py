@@ -103,7 +103,8 @@ class PositionStorage:
         """ Update status of each open position in the positions table """
         
         # SQL statement to select open positions
-        select_sql = 'SELECT id FROM positions WHERE status IS PENDING'
+        select_sql = "SELECT id FROM positions WHERE status = 'PENDING'"
+
         
         # SQL statement to update position data
         update_sql = '''UPDATE positions SET status = ?, remainingSize = ?, unfillableAt = ? WHERE id = ?'''
@@ -135,7 +136,7 @@ class PositionStorage:
 
     def get_fields_by_id(self, fields, id):
         """ Retrieve specific fields from a record by its id """
-        
+
         fields_str = ", ".join(fields)
         sql = f'SELECT {fields_str} FROM positions WHERE id = ?'
 
