@@ -135,6 +135,7 @@ class PositionStorage:
 
     def get_fields_by_id(self, fields, id):
         """ Retrieve specific fields from a record by its id """
+        
         fields_str = ", ".join(fields)
         sql = f'SELECT {fields_str} FROM positions WHERE id = ?'
 
@@ -149,29 +150,11 @@ class PositionStorage:
             self.logger.error(f"Error retrieving fields: {e}")
 
 
-    # OPEN trades (FILLED):
-    def get_filled_fields_by_id(self, fields, id):
-        """ Retrieve specific fields from a record by its id only if the status is 'FILLED' """
-        fields_str = ", ".join(fields)
-        sql = f'SELECT {fields_str} FROM positions WHERE id = ? AND status = "FILLED"'
 
-        try:
-            with self.conn:
-                cur = self.conn.cursor()
-                cur.execute(sql, (id,))
-                result = cur.fetchone()
-                if result:
-                    return result
-        except Error as e:
-            self.logger.error(f"Error retrieving fields: {e}")
+    def get_order_ids_for_not_closed_positions(self):
+        """ Retrieve TAKE_PROFIT_ID and STOP_LIMIT_ID from records where status is NOT 'CLOSED' """
 
-
-
-    def get_order_ids_for_filled_positions(self):
-        """ Retrieve TAKE_PROFIT_ID and STOP_LIMIT_ID from records where status is 'FILLED' """
-        
-        sql = 'SELECT TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = "FILLED"'
-
+        sql = 'SELECT TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status <> "CLOSED"'
         try:
             with self.conn:
                 cur = self.conn.cursor()
@@ -181,6 +164,7 @@ class PositionStorage:
                     return results
         except Error as e:
             self.logger.error(f"Error retrieving fields: {e}")
+
 
 
     def get_record_by_order_id(self, order_id):
@@ -193,12 +177,13 @@ class PositionStorage:
                 if result:
                     # If the order_id provided matches TAKE_PROFIT_ID, return the ID and STOP_LIMIT_ID.
                     if result[1] == order_id:
-                        return (result[0], result[2])
+                        return result[0], result[2]
                     # If the order_id provided matches STOP_LIMIT_ID, return the ID and TAKE_PROFIT_ID.
                     else:
-                        return (result[0], result[1])
+                        return result[0], result[1]
         except Error as e:
             self.logger.error(f"Error retrieving record: {e}")
+
 
 
     def update_status_by_id(self, id, new_status):
