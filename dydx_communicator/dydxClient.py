@@ -534,7 +534,9 @@ class DydxClient:
                 order_response = self.client.private.create_order(**order_params)
                 order_id = order_response.data['order']['id']
                 #order_type.append(TPSL_ORDER_TYPE[i])
-                order_ids[TPSL_ORDER_TYPE[i]] = order_id
+                order_ids[TPSL_ORDER_TYPE[i]] = order_response.data['order']
+            
+            print(order_ids)
 
             return order_ids    #order_type
 
