@@ -290,7 +290,8 @@ def execute_main(client: DydxClient, json_file_path: str):
                 check_liquidation_zone(liq_levels, client, liq_zones_to_be_updated, updated_liq_levels)
                 
                 # Cancels all orders for trading pairs which don't have an open position:
-                client.purge_no_pos_orders()
+                #client.purge_no_pos_orders()
+                client.check_if_orders_is_closed()
 
 
                 # Send msg in TG when orders are closed:

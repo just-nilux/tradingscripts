@@ -38,7 +38,8 @@ class PositionStorage:
                                         TAKE_PROFIT_ID text,
                                         STOP_LIMIT_ID text,
                                         TP real,
-                                        SL real
+                                        SL real,
+                                        Pnl real
                                     ); """)
         except Error as e:
             self.logger.error(f"{e}")
@@ -48,7 +49,7 @@ class PositionStorage:
     def insert_position(self, position_data, TAKE_PROFIT, STOP_LIMIT, entrystrat, timeframe):
         """ insert a new position into the positions table """
         sql = ''' INSERT INTO positions(id, market, side, price, triggerPrice, size, type, createdAt, unfillableAt, expiresAt, status, cancelReason, entryStrat,
-                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, TP, SL) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, TP, SL, Pnl) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
 
         try:
             created_at = datetime.strptime(position_data['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if position_data['createdAt'] else None
@@ -85,7 +86,8 @@ class PositionStorage:
             TAKE_PROFIT['id'],
             STOP_LIMIT['id'],
             TP,
-            SL
+            SL,
+            None  # Pnl initialized as None
         )
         try:
             with self.conn:
@@ -106,9 +108,6 @@ class PositionStorage:
         # SQL statement to update position data
         update_sql = '''UPDATE positions SET status = ?, remainingSize = ?, unfillableAt = ? WHERE id = ?'''
         
-        # List to store the updated positions
-        updated_positions = []
-        
         try:
             with self.conn:
                 cur = self.conn.cursor()
@@ -126,19 +125,99 @@ class PositionStorage:
                     remaining_size = response['remainingSize']
                     unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
 
-                    if unfillable_at:
-                        # Add the position id to the list of updated positions
-                        updated_positions.append(pos_id[0])
 
                     # Execute UPDATE statement
                     cur.execute(update_sql, (status, remaining_size, unfillable_at, pos_id[0]))
         except Error as e:
             self.logger.error(f"Error updating position status: {e}")
 
-        # Return the list of updated position ids
-        return updated_positions
 
 
+    def get_fields_by_id(self, fields, id):
+        """ Retrieve specific fields from a record by its id """
+        fields_str = ", ".join(fields)
+        sql = f'SELECT {fields_str} FROM positions WHERE id = ?'
+
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                cur.execute(sql, (id,))
+                result = cur.fetchone()
+                if result:
+                    return result
+        except Error as e:
+            self.logger.error(f"Error retrieving fields: {e}")
+
+
+    # OPEN trades (FILLED):
+    def get_filled_fields_by_id(self, fields, id):
+        """ Retrieve specific fields from a record by its id only if the status is 'FILLED' """
+        fields_str = ", ".join(fields)
+        sql = f'SELECT {fields_str} FROM positions WHERE id = ? AND status = "FILLED"'
+
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                cur.execute(sql, (id,))
+                result = cur.fetchone()
+                if result:
+                    return result
+        except Error as e:
+            self.logger.error(f"Error retrieving fields: {e}")
+
+
+
+    def get_order_ids_for_filled_positions(self):
+        """ Retrieve TAKE_PROFIT_ID and STOP_LIMIT_ID from records where status is 'FILLED' """
+        
+        sql = 'SELECT TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = "FILLED"'
+
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                cur.execute(sql)
+                results = cur.fetchall()
+                if results:
+                    return results
+        except Error as e:
+            self.logger.error(f"Error retrieving fields: {e}")
+
+
+    def get_record_by_order_id(self, order_id):
+        """ Retrieve a record by TAKE_PROFIT_ID or STOP_LIMIT_ID """
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                cur.execute('SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE TAKE_PROFIT_ID = ? OR STOP_LIMIT_ID = ?', (order_id, order_id))
+                result = cur.fetchone()
+                if result:
+                    # If the order_id provided matches TAKE_PROFIT_ID, return the ID and STOP_LIMIT_ID.
+                    if result[1] == order_id:
+                        return (result[0], result[2])
+                    # If the order_id provided matches STOP_LIMIT_ID, return the ID and TAKE_PROFIT_ID.
+                    else:
+                        return (result[0], result[1])
+        except Error as e:
+            self.logger.error(f"Error retrieving record: {e}")
+
+
+    def update_status_by_id(self, id, new_status):
+        """ Update status of a record by id """
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
+                cur.execute('UPDATE positions SET status = ? WHERE id = ?', (new_status, id))
+                self.conn.commit()  # save the changes
+        except Error as e:
+            self.logger.error(f"Error updating status: {e}")
+
+
+
+
+
+
+
+        
 
 
 

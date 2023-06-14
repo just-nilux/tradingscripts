@@ -12,6 +12,7 @@ from logger_setup import setup_logger
 from dydx3.constants import TIME_IN_FORCE_IOC, ORDER_TYPE_MARKET
 from datetime import datetime, timezone
 
+from position_storage import PositionStorage
 
 
 
@@ -25,6 +26,8 @@ class DydxClient:
         with open('asset_config.json') as f:
             self.asset_resolution = json.load(f)
 
+
+        self.position_storage = PositionStorage('positions.db')
 
         self.api_key = self.config['dydx_api_key']
         self.secret_key = self.config['dydx_api_secret']
@@ -642,4 +645,41 @@ class DydxClient:
         self.logger.info(f"New stop limit order placed with id {order_id}.")
 
 
-                
+    
+    def check_if_orders_is_closed(self):
+
+        orders = self.position_storage.get_order_ids_for_not_closed_positions()
+
+        if not orders:
+            return
+        
+        open_orders = self.client.private.get_order(status="UNTRIGGERED").data['orders']
+        
+        # all orders are still open
+        if len(open_orders) == len(orders)*2:
+            return
+
+        open_order_ids_on_dydx = set([order['id'] for order in open_orders])
+        open_order_ids_in_db = set(id for tp_id, sl_id in orders for id in (tp_id, sl_id))
+
+        # compare "open_order_ids_on_dydx" and "open_order_ids_in_db"
+        # extract the ones that are present in open_order_ids_in_db but not in open_order_ids_on_dydx. 
+        order_ids_that_have_been_closed = open_order_ids_in_db - open_order_ids_on_dydx
+
+        # check if closed + cancel the remaining order + update DB to "CLOSED":
+        for order in order_ids_that_have_been_closed:
+            res = self.client.private.get_order_by_id(order).data['order']
+            if not res['status'] == 'FILLED':
+                self.logger.error(f'{order} have not been CLOSED')
+                continue
+            pos_id, order_id = self.position_storage.get_record_by_order_id(order)
+
+            # Cancel the remaining order:
+            self.client.private.cancel_order(order_id)
+
+
+        # opdater' position i db på id ('status' = 'CLOSED')
+            self.position_storage.update_status_by_id(pos_id, "Closed")
+
+        
+        
