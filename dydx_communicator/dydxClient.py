@@ -647,9 +647,9 @@ class DydxClient:
         open_orders = self.client.private.get_orders(status="UNTRIGGERED").data['orders']
         
         # compare the len -> if same len, then no position have been closed:
-        if len(open_orders) == len(orders)*2:
+        #if len(open_orders) == len(orders)*2:
             #self.logger.debug(f"len(open_orders) on DYDX == len(orders) in db - {len(open_orders)} on DYDX == {len(orders)*2} in db")
-            return
+        #    return
 
         # make set of ids from db & dydx:
         open_order_ids_on_dydx = set([order['id'] for order in open_orders])
