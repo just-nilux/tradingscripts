@@ -38,8 +38,8 @@ class PositionStorage:
                                         timeframe text,
                                         TAKE_PROFIT_ID text,
                                         STOP_LIMIT_ID text,
-                                        ask_TP text,
-                                        ask_SL text,
+                                        triggerPrice_TP text,
+                                        triggerPrice_SL text,
                                         fill_TP text,
                                         fill_SL text,
                                         Pnl text
@@ -52,7 +52,7 @@ class PositionStorage:
     def insert_position(self, position_data, TAKE_PROFIT, STOP_LIMIT, entrystrat, timeframe):
         """ insert a new position into the positions table """
         sql = ''' INSERT INTO positions(id, market, side, ask_price, fill_price, triggerPrice, size, type, createdAt, unfillableAt, expiresAt, status, cancelReason, entryStrat,
-                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, ask_TP, ask_SL, fill_TP, fill_SL, Pnl) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, triggerPrice_TP, triggerPrice_SL, fill_TP, fill_SL, Pnl) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
 
         try:
             created_at = datetime.strptime(position_data['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if position_data['createdAt'] else None
@@ -60,16 +60,6 @@ class PositionStorage:
         except ValueError as e:
             self.logger.error(f"Error parsing date: {e}")
             return
-
-        #try:
-            #ask_price = float(position_data['price']) if position_data['price'] else None
-            #size = float(position_data['size']) if position_data['size'] else None
-
-            #TP = float(TAKE_PROFIT['price']) if TAKE_PROFIT['price'] else None
-            #SL = float(STOP_LIMIT['triggerPrice']) if STOP_LIMIT['triggerPrice'] else None
-        #except ValueError as e:
-            #self.logger.error(f"Error converting price or size to float: {e}")
-            #return
 
         position_tuple = (
             position_data['id'],
@@ -109,7 +99,8 @@ class PositionStorage:
         """ Update status of each open position in the positions table """
 
         # SQL statement to select open positions
-        select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = 'PENDING'"
+        select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status IN ('PENDING', 'CLOSED')"
+
 
         # SQL statement to update position data
         update_sql = '''UPDATE positions SET status = ?, unfillableAt = ?, fill_price = ?,  fill_TP = ?, fill_SL = ? WHERE id = ?'''
