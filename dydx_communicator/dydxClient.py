@@ -566,9 +566,9 @@ class DydxClient:
             if orders_data['orders']:
                 take_profit_price = float(orders_data['orders'][0]['triggerPrice'])
                 
-                # Punkt 3: Hent oracle pris for det gældende symbol
+                # Punkt 3: Hent indexPrice pris for det gældende symbol
                 market_data = self.client.public.get_markets(market=position['market']).data
-                current_price = float(market_data['markets'][position['market']]['oraclePrice'])
+                current_price = float(market_data['markets'][position['market']]['indexPrice'])
 
                 # Punkt 4: Beregn hvor langt i mål traden er pt
                 entry_price = float(position['entryPrice'])
@@ -591,7 +591,7 @@ class DydxClient:
                         order_id_to_cancel = sl_order_data['orders'][0]['id']
 
                         # Annuller den pågældende orden
-                        res = self.client.private.cancel_active_orders(market=position['market'], id=order_id_to_cancel, side='BUY').data
+                        res = self.client.private.cancel_order(order_id_to_cancel)
                         self.logger.info(f"Canceled order with id {order_id_to_cancel}.")
                         
                         # Place new stop limit order at break-even price
@@ -636,48 +636,46 @@ class DydxClient:
 
     
     def check_if_orders_is_closed(self, position_storage):
+        try:
+            # get order ids for SL/TP orders in db - on NOT CLOSED ids:
+            db_response = position_storage.get_order_ids_for_open_positions()
 
-        # get all open orders (TP/SL) in db:
-        orders = position_storage.get_order_ids_for_open_positions()
+            # extract ids from dydx response
+            dydx_ids = {order['id'] for order in self.client.private.get_orders(status="UNTRIGGERED").data['orders']}
+        except Exception as e:
+            # Handle exceptions here
+            self.logger.error(f"Error occurred: {e}")
+            return []
 
-        if not orders:
-            return
-        
-        # get all open orders (TP/SL) at dydx:
-        open_orders = self.client.private.get_orders(status="UNTRIGGERED").data['orders']
-        
-        # compare the len -> if same len, then no position have been closed:
-        #if len(open_orders) == len(orders)*2:
+        if len(dydx_ids) == len(db_response)*2:
             #self.logger.debug(f"len(open_orders) on DYDX == len(orders) in db - {len(open_orders)} on DYDX == {len(orders)*2} in db")
-        #    return
+            return []
 
-        # make set of ids from db & dydx:
-        open_order_ids_on_dydx = set([order['id'] for order in open_orders])
-        open_order_ids_in_db = set(id for tp_id, sl_id in orders for id in (tp_id, sl_id))
 
-        # compare "open_order_ids_on_dydx" and "open_order_ids_in_db"
-        # extract the ones that are present in open_order_ids_in_db but not in open_order_ids_on_dydx. 
-        completed_order_ids = open_order_ids_in_db - open_order_ids_on_dydx
+        ids_to_cancel = list()
+        # Check each pair in db_response
+        for tp_id, sl_id in db_response:
+            # If tp_id is in dydx_ids and sl_id is not, print tp_id
+            if tp_id in dydx_ids and sl_id not in dydx_ids:
+                ids_to_cancel.append(tp_id)
+            # If sl_id is in dydx_ids and tp_id is not, print sl_id
+            elif sl_id in dydx_ids and tp_id not in dydx_ids:
+                ids_to_cancel.append(sl_id)
         
-        return completed_order_ids
-        
+        return ids_to_cancel
+
     
-    def cancel_order_update_db(self, position_storage, completed_order_ids):
+    def cancel_order_update_db(self, position_storage, order_ids_to_cancel):
         
         # cancel the remaining order + update DB to "CLOSED":
-        for order in completed_order_ids:
-           
-            res = self.client.private.get_order_by_id(order).data['order']
-            
-            pos_id, order_id_to_cancel = position_storage.get_record_by_order_id(order)
-            
-            if res['status'] != "CANCELED":
-                # Cancel the remaining order:
-                self.client.private.cancel_order(order_id_to_cancel)
+        for id in order_ids_to_cancel:
 
+
+            # Cancel the remaining order:
+            self.client.private.cancel_order(id)
 
             # opdater' position i db på id ('status' = 'CLOSED')
-            position_storage.update_status_by_id(pos_id, "CLOSED")
+            position_storage.update_status_by_id(id, "CLOSED")
 
         
         

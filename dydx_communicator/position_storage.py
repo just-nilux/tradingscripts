@@ -192,15 +192,29 @@ class PositionStorage:
 
 
 
-    def update_status_by_id(self, id, new_status):
-        """ Update status of a record by id """
+    def update_status_by_order_id(self, order_id, new_status):
+        """ Update status of a record by either TAKE_PROFIT_ID or STOP_LIMIT_ID """
         try:
             with self.conn:
                 cur = self.conn.cursor()
-                cur.execute('UPDATE positions SET status = ? WHERE id = ?', (new_status, id))
+                # Check if there is a record with the order_id as TAKE_PROFIT_ID
+                cur.execute('SELECT * FROM positions WHERE TAKE_PROFIT_ID = ?', (order_id,))
+                record = cur.fetchone()
+                if record is not None:
+                    # If there is, update the status
+                    cur.execute('UPDATE positions SET status = ? WHERE TAKE_PROFIT_ID = ?', (new_status, order_id))
+                else:
+                    # If there isn't, check if there is a record with the order_id as STOP_LIMIT_ID
+                    cur.execute('SELECT * FROM positions WHERE STOP_LIMIT_ID = ?', (order_id,))
+                    record = cur.fetchone()
+                    if record is not None:
+                        # If there is, update the status
+                        cur.execute('UPDATE positions SET status = ? WHERE STOP_LIMIT_ID = ?', (new_status, order_id))
+
                 self.conn.commit()  # save the changes
         except Error as e:
             self.logger.error(f"Error updating status: {e}")
+
 
 
 
