@@ -24,7 +24,8 @@ class PositionStorage:
                                         id text,
                                         market text,
                                         side text,
-                                        price real,
+                                        ask_price text,
+                                        fill_price text,
                                         triggerPrice text,
                                         size real,
                                         type text,
@@ -37,9 +38,11 @@ class PositionStorage:
                                         timeframe text,
                                         TAKE_PROFIT_ID text,
                                         STOP_LIMIT_ID text,
-                                        TP real,
-                                        SL real,
-                                        Pnl real
+                                        ask_TP text,
+                                        ask_SL text,
+                                        fill_TP text,
+                                        fill_SL text,
+                                        Pnl text
                                     ); """)
         except Error as e:
             self.logger.error(f"{e}")
@@ -48,8 +51,8 @@ class PositionStorage:
 
     def insert_position(self, position_data, TAKE_PROFIT, STOP_LIMIT, entrystrat, timeframe):
         """ insert a new position into the positions table """
-        sql = ''' INSERT INTO positions(id, market, side, price, triggerPrice, size, type, createdAt, unfillableAt, expiresAt, status, cancelReason, entryStrat,
-                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, TP, SL, Pnl) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+        sql = ''' INSERT INTO positions(id, market, side, ask_price, fill_price, triggerPrice, size, type, createdAt, unfillableAt, expiresAt, status, cancelReason, entryStrat,
+                timeframe, TAKE_PROFIT_ID, STOP_LIMIT_ID, ask_TP, ask_SL, fill_TP, fill_SL, Pnl) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
 
         try:
             created_at = datetime.strptime(position_data['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if position_data['createdAt'] else None
@@ -58,23 +61,24 @@ class PositionStorage:
             self.logger.error(f"Error parsing date: {e}")
             return
 
-        try:
-            price = float(position_data['price']) if position_data['price'] else None
-            size = float(position_data['size']) if position_data['size'] else None
+        #try:
+            #ask_price = float(position_data['price']) if position_data['price'] else None
+            #size = float(position_data['size']) if position_data['size'] else None
 
-            TP = float(TAKE_PROFIT['price']) if TAKE_PROFIT['price'] else None
-            SL = float(STOP_LIMIT['triggerPrice']) if STOP_LIMIT['triggerPrice'] else None
-        except ValueError as e:
-            self.logger.error(f"Error converting price or size to float: {e}")
-            return
+            #TP = float(TAKE_PROFIT['price']) if TAKE_PROFIT['price'] else None
+            #SL = float(STOP_LIMIT['triggerPrice']) if STOP_LIMIT['triggerPrice'] else None
+        #except ValueError as e:
+            #self.logger.error(f"Error converting price or size to float: {e}")
+            #return
 
         position_tuple = (
             position_data['id'],
             position_data['market'],
             position_data['side'],
-            price,
+            position_data['price'],
+            None,
             position_data['triggerPrice'],
-            size,
+            position_data['size'],
             position_data['type'],
             created_at,
             position_data['unfillableAt'],
@@ -85,8 +89,10 @@ class PositionStorage:
             timeframe,
             TAKE_PROFIT['id'],
             STOP_LIMIT['id'],
-            TP,
-            SL,
+            TAKE_PROFIT['price'],
+            STOP_LIMIT['triggerPrice'],
+            None,
+            None,
             None  # Pnl initialized as None
         )
         try:
@@ -99,37 +105,45 @@ class PositionStorage:
     
 
 
-    def update_position_status(self, client):
-        """ Update status of each open position in the positions table """
-        
-        # SQL statement to select open positions
-        select_sql = "SELECT id FROM positions WHERE status = 'PENDING'"
+def update_position_status(self, client):
+    """ Update status of each open position in the positions table """
 
-        
-        # SQL statement to update position data
-        update_sql = '''UPDATE positions SET status = ?, unfillableAt = ? WHERE id = ?'''
-        
-        try:
-            with self.conn:
-                cur = self.conn.cursor()
-                
-                # Execute SELECT statement
-                cur.execute(select_sql)
-                open_positions = cur.fetchall()
-                
-                for pos_id in open_positions:
-                    # Call the dydx exchange API for each open position
-                    response = client.client.private.get_order_by_id(pos_id[0]).data['order']
+    # SQL statement to select open positions
+    select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = 'PENDING'"
 
-                    # Extract data from API response
-                    status = response['status']
-                    unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
+    # SQL statement to update position data
+    update_sql = '''UPDATE positions SET status = ?, unfillableAt = ?, fill_price = ?,  fill_TP = ?, fill_SL = ? WHERE id = ?'''
 
+    try:
+        with self.conn:
+            cur = self.conn.cursor()
 
-                    # Execute UPDATE statement
-                    cur.execute(update_sql, (status, unfillable_at, pos_id[0]))
-        except Error as e:
-            self.logger.error(f"Error updating position status: {e}")
+            # Execute SELECT statement
+            cur.execute(select_sql)
+            open_positions = cur.fetchall()
+
+            for pos_id, tp_id, sl_id in open_positions:
+                # Call the dydx exchange API for each open position
+                response = client.private.get_order_by_id(pos_id).data['order']
+
+                fills = client.private.get_fills(order_id=pos_id).data['fills']
+                fill_price = fills[0].get('price') if fills else None
+
+                tp_fills = client.private.get_fills(order_id=tp_id).data['fills']
+                fill_TP = tp_fills[0].get('price') if tp_fills else None
+
+                sl_fills = client.private.get_fills(order_id=sl_id).data['fills']
+                fill_SL = sl_fills[0].get('price') if sl_fills else None
+
+                # Extract data from API response
+                status = response['status']
+                unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
+
+                # Execute UPDATE statement
+                cur.execute(update_sql, (status, unfillable_at, fill_price, fill_TP, fill_SL, pos_id))
+    except Error as e:
+        self.logger.error(f"Error updating position status: {e}")
+
 
 
 
@@ -151,7 +165,7 @@ class PositionStorage:
 
 
 
-    def get_order_ids_for_not_closed_positions(self):
+    def get_order_ids_for_open_positions(self):
         """ Retrieve TAKE_PROFIT_ID and STOP_LIMIT_ID from records where status is NOT 'CLOSED' """
 
         sql = 'SELECT TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status <> "CLOSED"'
