@@ -124,15 +124,15 @@ class PositionStorage:
 
                 for pos_id, tp_id, sl_id in open_positions:
                     # Call the dydx exchange API for each open position
-                    response = client.private.get_order_by_id(pos_id).data['order']
+                    response = client.client.private.get_order_by_id(pos_id).data['order']
 
-                    fills = client.private.get_fills(order_id=pos_id).data['fills']
+                    fills = client.client.private.get_fills(order_id=pos_id).data['fills']
                     fill_price = fills[0].get('price') if fills else None
 
-                    tp_fills = client.private.get_fills(order_id=tp_id).data['fills']
+                    tp_fills = client.client.private.get_fills(order_id=tp_id).data['fills']
                     fill_TP = tp_fills[0].get('price') if tp_fills else None
 
-                    sl_fills = client.private.get_fills(order_id=sl_id).data['fills']
+                    sl_fills = client.client.private.get_fills(order_id=sl_id).data['fills']
                     fill_SL = sl_fills[0].get('price') if sl_fills else None
 
                     # Extract data from API response
