@@ -99,7 +99,8 @@ class PositionStorage:
         """ Update status of each open position in the positions table """
 
         # SQL statement to select open positions
-        select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status IN ('PENDING', 'CLOSED')"
+        select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status IN ('PENDING', 'CLOSED') AND fill_TP IS NULL AND fill_SL IS NULL"
+
 
 
         # SQL statement to update position data
