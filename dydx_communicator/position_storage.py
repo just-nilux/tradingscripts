@@ -105,44 +105,44 @@ class PositionStorage:
     
 
 
-def update_position_status(self, client):
-    """ Update status of each open position in the positions table """
+    def update_position_status(self, client):
+        """ Update status of each open position in the positions table """
 
-    # SQL statement to select open positions
-    select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = 'PENDING'"
+        # SQL statement to select open positions
+        select_sql = "SELECT id, TAKE_PROFIT_ID, STOP_LIMIT_ID FROM positions WHERE status = 'PENDING'"
 
-    # SQL statement to update position data
-    update_sql = '''UPDATE positions SET status = ?, unfillableAt = ?, fill_price = ?,  fill_TP = ?, fill_SL = ? WHERE id = ?'''
+        # SQL statement to update position data
+        update_sql = '''UPDATE positions SET status = ?, unfillableAt = ?, fill_price = ?,  fill_TP = ?, fill_SL = ? WHERE id = ?'''
 
-    try:
-        with self.conn:
-            cur = self.conn.cursor()
+        try:
+            with self.conn:
+                cur = self.conn.cursor()
 
-            # Execute SELECT statement
-            cur.execute(select_sql)
-            open_positions = cur.fetchall()
+                # Execute SELECT statement
+                cur.execute(select_sql)
+                open_positions = cur.fetchall()
 
-            for pos_id, tp_id, sl_id in open_positions:
-                # Call the dydx exchange API for each open position
-                response = client.private.get_order_by_id(pos_id).data['order']
+                for pos_id, tp_id, sl_id in open_positions:
+                    # Call the dydx exchange API for each open position
+                    response = client.private.get_order_by_id(pos_id).data['order']
 
-                fills = client.private.get_fills(order_id=pos_id).data['fills']
-                fill_price = fills[0].get('price') if fills else None
+                    fills = client.private.get_fills(order_id=pos_id).data['fills']
+                    fill_price = fills[0].get('price') if fills else None
 
-                tp_fills = client.private.get_fills(order_id=tp_id).data['fills']
-                fill_TP = tp_fills[0].get('price') if tp_fills else None
+                    tp_fills = client.private.get_fills(order_id=tp_id).data['fills']
+                    fill_TP = tp_fills[0].get('price') if tp_fills else None
 
-                sl_fills = client.private.get_fills(order_id=sl_id).data['fills']
-                fill_SL = sl_fills[0].get('price') if sl_fills else None
+                    sl_fills = client.private.get_fills(order_id=sl_id).data['fills']
+                    fill_SL = sl_fills[0].get('price') if sl_fills else None
 
-                # Extract data from API response
-                status = response['status']
-                unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
+                    # Extract data from API response
+                    status = response['status']
+                    unfillable_at = datetime.strptime(response['unfillableAt'], "%Y-%m-%dT%H:%M:%S.%fZ") if response['unfillableAt'] else None
 
-                # Execute UPDATE statement
-                cur.execute(update_sql, (status, unfillable_at, fill_price, fill_TP, fill_SL, pos_id))
-    except Error as e:
-        self.logger.error(f"Error updating position status: {e}")
+                    # Execute UPDATE statement
+                    cur.execute(update_sql, (status, unfillable_at, fill_price, fill_TP, fill_SL, pos_id))
+        except Error as e:
+            self.logger.error(f"Error updating position status: {e}")
 
 
 
